@@ -434,3 +434,57 @@ docker compose config --quiet
 ```powershell
 .\scripts\acceptance_full_sim.ps1 -DashboardPort 8080 -MinAlerts 1
 ```
+
+## 13. 常用辅助脚本
+
+为了降低操作门槛，项目提供了几个常用 PowerShell 脚本。
+
+查看当前状态：
+
+```powershell
+cd E:\DroneRailInspection
+.\scripts\status.ps1
+```
+
+它会显示：
+
+- 当前容器状态。
+- Dashboard API 是否可访问。
+- 当前任务阶段、目标、告警数量、检测数量。
+- 报告文件列表。
+- 证据文件数量。
+
+打开 Dashboard：
+
+```powershell
+.\scripts\open_dashboard.ps1
+```
+
+如果 Dashboard 使用其他端口：
+
+```powershell
+.\scripts\open_dashboard.ps1 -DashboardPort 8090
+```
+
+停止仿真：
+
+```powershell
+.\scripts\stop_sim.ps1
+```
+
+交互式演示菜单：
+
+```powershell
+.\scripts\demo_menu.ps1
+```
+
+菜单包含：
+
+- 查看状态。
+- 启动离线工程演示。
+- 启动完整 PX4/Gazebo 仿真。
+- 打开 Dashboard。
+- 运行离线验收。
+- 运行完整仿真验收。
+- 停止仿真容器。
+- 打开容器 shell。

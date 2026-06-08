@@ -24,6 +24,22 @@ cd E:\DroneRailInspection
 http://127.0.0.1:8080
 ```
 
+
+常用操作脚本：
+
+```powershell
+# 查看容器、Dashboard、报告和证据状态
+.\scripts\status.ps1
+
+# 打开中文 Dashboard
+.\scripts\open_dashboard.ps1
+
+# 停止当前仿真容器
+.\scripts\stop_sim.ps1
+
+# 使用交互式演示菜单
+.\scripts\demo_menu.ps1
+```
 完整 PX4/Gazebo 验收：
 
 ```powershell

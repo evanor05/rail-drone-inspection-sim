@@ -154,3 +154,25 @@ docker ps --filter name=drone-rail-inspection
 3. 一段 30-60 秒演示 GIF。
 4. Full acceptance 通过截图或日志摘要。
 5. 后续路线图：真实 YOLO、场景增强、RL、真实无人机迁移。
+## 交互式菜单演示
+
+如果演示对象不熟悉命令，可以直接运行：
+
+```powershell
+cd E:\DroneRailInspection
+.\scripts\demo_menu.ps1
+```
+
+推荐演示选择顺序：
+
+1. `1. 查看状态`
+2. `2. 启动离线工程演示`
+3. `4. 打开 Dashboard`
+4. `5. 运行离线验收`
+5. `7. 停止仿真容器`
+
+完整仿真展示时选择：
+
+1. `3. 启动完整 PX4/Gazebo 仿真（无 RViz）`
+2. 另开一个菜单或 PowerShell 运行 `6. 运行完整仿真验收`
+3. `7. 停止仿真容器`
