@@ -335,6 +335,30 @@ E:\DroneRailInspection\data\evidence
 
 报告和证据属于运行产物，默认不提交到 Git。
 
+### 中文报告字段说明
+
+当前报告生成模块会同时输出机器可读字段和中文展示字段。
+
+JSON 中保留的核心字段：
+
+- `defect_class`：英文类别 ID，方便程序处理。
+- `defect_class_label`：中文类别，例如 `轨道上人员`。
+- `defect_class_display`：中文 + 英文类别，例如 `轨道上人员 (person_on_track)`。
+- `severity`：英文严重级别。
+- `severity_label`：中文严重级别。
+- `mission_phase`：英文任务阶段。
+- `mission_phase_label`：中文任务阶段。
+- `evidence_path`：证据文件路径。
+
+Markdown 和 HTML 报告默认使用中文标题、中文字段名和中文类别说明，适合演示和人工查看；JSON 适合后续接入数据库、线路资产系统或二次分析脚本。
+
+本地验证中文报告模板：
+
+```powershell
+cd E:\DroneRailInspection
+python .\scripts\report_smoke.py
+```
+
 ## 10. 常见问题
 
 ### 浏览器打不开 Dashboard

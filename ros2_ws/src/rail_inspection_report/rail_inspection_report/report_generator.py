@@ -9,6 +9,9 @@ from ddrone_msgs.msg import Alert, Detection, DroneTelemetry, MissionState
 from rclpy.node import Node
 
 
+from rail_inspection_report.report_templates import enrich_alert, label_phase, render_html, render_markdown
+
+
 class ReportGenerator(Node):
     """Persists alerts and produces machine-readable plus human-readable reports."""
 
@@ -47,7 +50,7 @@ class ReportGenerator(Node):
         self.latest_mission = msg
 
     def _alert_to_dict(self, msg: Alert) -> Dict:
-        return {
+        base = {
             "alert_id": msg.alert_id,
             "time_ros": {"sec": msg.header.stamp.sec, "nanosec": msg.header.stamp.nanosec},
             "time_utc": datetime.now(timezone.utc).isoformat(),
@@ -65,14 +68,16 @@ class ReportGenerator(Node):
             "status": msg.status,
             "notes": msg.notes,
         }
+        return enrich_alert(base)
 
     def _summary(self) -> Dict:
         mission = self.latest_mission
         telemetry = self.latest_telemetry
-        return {
+        phase = mission.phase if mission else "UNKNOWN"
+        summary = {
             "started_at_utc": self.started_at.isoformat(),
             "updated_at_utc": datetime.now(timezone.utc).isoformat(),
-            "mission_phase": mission.phase if mission else "UNKNOWN",
+            "mission_phase": phase,
             "mission_progress": round(float(mission.progress), 3) if mission else 0.0,
             "detections_seen": self.detections_seen,
             "alerts_count": len(self.alerts),
@@ -83,6 +88,8 @@ class ReportGenerator(Node):
             },
             "battery_percentage": round(float(telemetry.battery_percentage), 2) if telemetry else None,
         }
+        summary["mission_phase_label"] = label_phase(phase)
+        return summary
 
     def write_reports(self) -> None:
         now = time.monotonic()
@@ -99,91 +106,15 @@ class ReportGenerator(Node):
         with open(json_path, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, ensure_ascii=False, indent=2)
         with open(md_path, "w", encoding="utf-8") as handle:
-            handle.write(self._markdown(payload))
+            handle.write(render_markdown(payload))
         with open(html_path, "w", encoding="utf-8") as handle:
-            handle.write(self._html(payload))
+            handle.write(render_html(payload))
 
     def _markdown(self, payload: Dict) -> str:
-        summary = payload["summary"]
-        lines = [
-            "# High-Speed Railway Drone Inspection Report",
-            "",
-            f"- Started UTC: {summary['started_at_utc']}",
-            f"- Updated UTC: {summary['updated_at_utc']}",
-            f"- Mission phase: {summary['mission_phase']}",
-            f"- Mission progress: {summary['mission_progress']}",
-            f"- Detections seen: {summary['detections_seen']}",
-            f"- Alerts count: {summary['alerts_count']}",
-            "",
-            "## Alerts",
-            "",
-        ]
-        if not payload["alerts"]:
-            lines.append("No alerts recorded yet.")
-        for alert in payload["alerts"]:
-            lines.extend(
-                [
-                    f"### {alert['defect_class']} ({alert['severity']})",
-                    f"- Alert ID: {alert['alert_id']}",
-                    f"- Time UTC: {alert['time_utc']}",
-                    f"- Confidence: {alert['confidence']}",
-                    f"- Position: x={alert['position']['x']}, y={alert['position']['y']}, z={alert['position']['z']}",
-                    f"- Mission phase: {alert['mission_phase']}",
-                    f"- Evidence: {alert['evidence_path']}",
-                    f"- Notes: {alert['notes']}",
-                    "",
-                ]
-            )
-        return "\n".join(lines)
+        return render_markdown(payload)
 
     def _html(self, payload: Dict) -> str:
-        summary = payload["summary"]
-        rows = []
-        for alert in payload["alerts"]:
-            evidence = alert["evidence_path"]
-            evidence_html = f"<a href='file://{evidence}'>{os.path.basename(evidence)}</a>" if evidence else ""
-            rows.append(
-                "<tr>"
-                f"<td>{alert['time_utc']}</td>"
-                f"<td>{alert['defect_class']}</td>"
-                f"<td>{alert['severity']}</td>"
-                f"<td>{alert['confidence']:.2f}</td>"
-                f"<td>{alert['position']['x']}, {alert['position']['y']}, {alert['position']['z']}</td>"
-                f"<td>{alert['mission_phase']}</td>"
-                f"<td>{evidence_html}</td>"
-                "</tr>"
-            )
-        rows_html = "\n".join(rows) if rows else "<tr><td colspan='7'>No alerts recorded yet.</td></tr>"
-        return f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Drone Rail Inspection Report</title>
-  <style>
-    body {{ font-family: Arial, sans-serif; margin: 32px; color: #1f2933; }}
-    h1 {{ margin-bottom: 8px; }}
-    .summary {{ display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }}
-    .metric {{ border: 1px solid #d7dde5; padding: 12px; border-radius: 6px; background: #f8fafc; }}
-    table {{ border-collapse: collapse; width: 100%; }}
-    th, td {{ border-bottom: 1px solid #d7dde5; padding: 9px; text-align: left; font-size: 14px; }}
-    th {{ background: #eef2f6; }}
-  </style>
-</head>
-<body>
-  <h1>High-Speed Railway Drone Inspection Report</h1>
-  <p>Started UTC: {summary['started_at_utc']} | Updated UTC: {summary['updated_at_utc']}</p>
-  <section class="summary">
-    <div class="metric"><strong>Mission phase</strong><br>{summary['mission_phase']}</div>
-    <div class="metric"><strong>Progress</strong><br>{summary['mission_progress']}</div>
-    <div class="metric"><strong>Detections</strong><br>{summary['detections_seen']}</div>
-    <div class="metric"><strong>Alerts</strong><br>{summary['alerts_count']}</div>
-  </section>
-  <table>
-    <thead><tr><th>Time</th><th>Class</th><th>Severity</th><th>Confidence</th><th>Position</th><th>Phase</th><th>Evidence</th></tr></thead>
-    <tbody>{rows_html}</tbody>
-  </table>
-</body>
-</html>"""
+        return render_html(payload)
 
 
 def main(args: Optional[List[str]] = None) -> None:
