@@ -199,3 +199,41 @@ nav a {
     min-height: auto;
   }
 }
+
+.camera-caption {
+  padding: 10px 14px;
+  color: var(--muted);
+  background: #f7f9fb;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.status-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcfd;
+}
+
+.status-strip div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.status-strip span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.status-strip strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.evidence {
+  overflow-wrap: anywhere;
+}

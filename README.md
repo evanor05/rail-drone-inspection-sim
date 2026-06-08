@@ -5,6 +5,7 @@
 ## 快速入口
 
 - 详细中文使用手册：[docs/USAGE_CN.md](docs/USAGE_CN.md)
+- 演示脚本与仿真操作矩阵：[docs/DEMO_SCRIPT_CN.md](docs/DEMO_SCRIPT_CN.md)
 - 架构说明：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - 需求追踪：[docs/REQUIREMENTS_TRACE.md](docs/REQUIREMENTS_TRACE.md)
 - 完整仿真验收清单：[scripts/acceptance_full_sim.md](scripts/acceptance_full_sim.md)

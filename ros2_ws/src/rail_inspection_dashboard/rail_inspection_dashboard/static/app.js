@@ -1,9 +1,15 @@
 const camera = document.getElementById("camera");
+const cameraCaption = document.getElementById("camera-caption");
 const summary = document.getElementById("mission-summary");
 const phase = document.getElementById("phase");
 const progress = document.getElementById("progress");
 const altitude = document.getElementById("altitude");
 const battery = document.getElementById("battery");
+const speed = document.getElementById("speed");
+const uptime = document.getElementById("uptime");
+const position = document.getElementById("position");
+const counts = document.getElementById("counts");
+const targetName = document.getElementById("target");
 const detections = document.getElementById("detections");
 const alerts = document.getElementById("alerts");
 
@@ -90,7 +96,17 @@ function formatPosition(pos) {
   const x = Number(pos?.x || 0).toFixed(2);
   const y = Number(pos?.y || 0).toFixed(2);
   const z = Number(pos?.z || 0).toFixed(2);
-  return `位置 x=${x}, y=${y}, z=${z}`;
+  return `x=${x}, y=${y}, z=${z}`;
+}
+
+function formatDuration(seconds) {
+  if (typeof seconds !== "number") {
+    return "--";
+  }
+  const total = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(total / 60);
+  const remain = total % 60;
+  return `${minutes}分${String(remain).padStart(2, "0")}秒`;
 }
 
 function renderMissionSummary(mission, telemetry, alertCount) {
@@ -115,9 +131,10 @@ function renderList(target, items, alertMode = false) {
     const severity = item.severity || "";
     const pos = item.position || { x: 0, y: 0, z: 0 };
     const severityText = labelFrom(SEVERITY_LABELS, severity, severity || "--");
+    const evidence = item.evidence_path ? `<div class="meta evidence">证据：${item.evidence_path}</div>` : "";
     const meta = alertMode
-      ? `级别：${severityText} | 阶段：${formatPhase(item.mission_phase || "--")} | ${formatPosition(pos)}`
-      : `${labelFrom(TRACK_SIDE_LABELS, item.track_side, item.track_side || "--")} | ${formatPosition(pos)}`;
+      ? `级别：${severityText} | 阶段：${formatPhase(item.mission_phase || "--")} | 位置 ${formatPosition(pos)}`
+      : `${labelFrom(TRACK_SIDE_LABELS, item.track_side, item.track_side || "--")} | 位置 ${formatPosition(pos)}`;
     return `
       <div class="item severity-${severity}">
         <div class="row">
@@ -125,6 +142,7 @@ function renderList(target, items, alertMode = false) {
           <span class="confidence">${Number(item.confidence || 0).toFixed(2)}</span>
         </div>
         <div class="meta">${meta}</div>
+        ${evidence}
       </div>`;
   }).join("");
 }
@@ -135,13 +153,21 @@ async function refresh() {
     const data = await response.json();
     const mission = data.mission || {};
     const telemetry = data.telemetry || {};
-    summary.textContent = renderMissionSummary(mission, telemetry, (data.alerts || []).length);
+    const detectionCount = (data.detections || []).length;
+    const alertCount = (data.alerts || []).length;
+    summary.textContent = renderMissionSummary(mission, telemetry, alertCount);
     phase.textContent = formatPhase(mission.phase || telemetry.nav_state || "--");
     progress.textContent = typeof mission.progress === "number" ? `${Math.round(mission.progress * 100)}%` : "--";
     altitude.textContent = typeof telemetry.altitude_m === "number" ? `${telemetry.altitude_m.toFixed(1)} m` : "--";
     battery.textContent = typeof telemetry.battery_percentage === "number" ? `${telemetry.battery_percentage.toFixed(0)}%` : "--";
+    speed.textContent = typeof telemetry.ground_speed_mps === "number" ? `${telemetry.ground_speed_mps.toFixed(2)} m/s` : "--";
+    uptime.textContent = formatDuration(data.uptime_seconds);
+    position.textContent = telemetry.position ? formatPosition(telemetry.position) : "--";
+    counts.textContent = `${detectionCount} / ${alertCount}`;
+    targetName.textContent = labelFrom(TARGET_LABELS, mission.active_target, mission.active_target || "--");
     if (data.last_image_jpeg_b64) {
       camera.src = `data:image/jpeg;base64,${data.last_image_jpeg_b64}`;
+      cameraCaption.textContent = `实时调试图像 | 检测 ${detectionCount} 条 | 告警 ${alertCount} 条`;
     }
     renderList(detections, data.detections || [], false);
     renderList(alerts, data.alerts || [], true);
