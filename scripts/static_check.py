@@ -136,6 +136,8 @@ def scan_docs() -> int:
         ("README.md", ["快速入口", "docs/USAGE_CN.md", "docs/DEMO_SCRIPT_CN.md", "CONTRIBUTING.md", "demo_menu.ps1"]),
         ("docs/USAGE_CN.md", ["离线工程演示", "完整 PX4 + Gazebo 仿真", "常用辅助脚本", "YOLO", "报告和证据"]),
         ("docs/DEMO_SCRIPT_CN.md", ["演示脚本与仿真操作矩阵", "仿真模式矩阵", "交互式菜单演示"]),
+        ("docs/ARCHITECTURE.md", ["架构说明", "Topic 合约", "真实无人机迁移边界", "RL 扩展点"]),
+        ("docs/REQUIREMENTS_TRACE.md", ["需求追踪与验收矩阵", "第一阶段工程演示目标", "真实无人机迁移方向", "当前剩余风险"]),
         ("CONTRIBUTING.md", ["提交前检查", "离线链路验证", "完整仿真验证", "Dashboard 修改原则"]),
     ]
     for rel_path, terms in checks:
