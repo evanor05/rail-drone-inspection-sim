@@ -335,6 +335,39 @@ E:\DroneRailInspection\data\evidence
 
 报告和证据属于运行产物，默认不提交到 Git。
 
+### 导出演示/验收证据包
+
+演示或验收结束后，可以生成一份独立证据包，方便发给评审、老师、同事或放到 release 附件中：
+
+```powershell
+cd E:\DroneRailInspection
+.\scripts\export_evidence.ps1 -DashboardPort 8080
+```
+
+默认输出目录：
+
+```text
+E:\DroneRailInspection\data\exports\inspection-evidence-<timestamp>
+```
+
+证据包包含：
+
+- `reports/`：当前 `data/reports` 下的 JSON / Markdown / HTML 报告副本。
+- `evidence/`：最近的证据图片或文本证据，默认最多复制 50 个。
+- `evidence_manifest.csv`：完整证据文件索引，包含文件名、大小、时间和原始路径。
+- `status/dashboard_status.json`：导出时 Dashboard API 快照；如果 Dashboard 未运行，会生成错误说明。
+- `status/git_status.txt` 和 `status/git_last_commit.txt`：当前 Git 状态和最新提交。
+- `status/docker_ps.txt` 和 `status/docker_info.txt`：Docker 容器状态和 Docker 环境摘要。
+- `summary.json`：本次导出的机器可读摘要。
+
+如果证据文件很多，但只想导出索引：
+
+```powershell
+.\scripts\export_evidence.ps1 -SkipEvidenceFiles
+```
+
+`data/exports` 同样属于运行产物，默认不提交到 Git。
+
 ### 中文报告字段说明
 
 当前报告生成模块会同时输出机器可读字段和中文展示字段。

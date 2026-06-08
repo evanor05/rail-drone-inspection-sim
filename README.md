@@ -42,6 +42,9 @@ http://127.0.0.1:8080
 
 # 使用交互式演示菜单
 .\scripts\demo_menu.ps1
+
+# 导出演示/验收证据包
+.\scripts\export_evidence.ps1
 ```
 完整 PX4/Gazebo 验收：
 
@@ -291,6 +294,20 @@ data/reports/inspection_report.md
 data/reports/inspection_report.html
 data/evidence/*.jpg
 ```
+
+演示或验收结束后，可以导出一份可交付的证据包：
+
+```powershell
+.\scripts\export_evidence.ps1 -DashboardPort 8080
+```
+
+默认输出到：
+
+```text
+data/exports/inspection-evidence-<timestamp>
+```
+
+证据包包含报告副本、证据文件索引、最近的证据文件、Dashboard API 快照、Git 状态、Docker 状态和主机摘要。`data/exports` 属于运行产物，默认不会提交到 Git。
 
 ## 离线验收命令
 

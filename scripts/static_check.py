@@ -70,6 +70,8 @@ def required_files() -> int:
         "scripts/open_dashboard.ps1",
         "scripts/demo_menu.ps1",
         "scripts/preflight.ps1",
+        "scripts/export_evidence.ps1",
+        "data/exports/.gitkeep",
     ]
     missing = [file for file in files if not (ROOT / file).exists()]
     if missing:
@@ -134,7 +136,7 @@ def scan_dashboard_localization() -> int:
 def scan_docs() -> int:
     checks = [
         ("README.md", ["快速入口", "docs/USAGE_CN.md", "docs/DEMO_SCRIPT_CN.md", "CONTRIBUTING.md", "demo_menu.ps1"]),
-        ("docs/USAGE_CN.md", ["离线工程演示", "完整 PX4 + Gazebo 仿真", "常用辅助脚本", "YOLO", "报告和证据"]),
+        ("docs/USAGE_CN.md", ["离线工程演示", "完整 PX4 + Gazebo 仿真", "常用辅助脚本", "YOLO", "报告和证据", "导出演示/验收证据包"]),
         ("docs/DEMO_SCRIPT_CN.md", ["演示脚本与仿真操作矩阵", "仿真模式矩阵", "交互式菜单演示"]),
         ("docs/ARCHITECTURE.md", ["架构说明", "Topic 合约", "真实无人机迁移边界", "RL 扩展点"]),
         ("docs/REQUIREMENTS_TRACE.md", ["需求追踪与验收矩阵", "第一阶段工程演示目标", "真实无人机迁移方向", "当前剩余风险"]),
@@ -174,6 +176,8 @@ def scan_gitignore() -> int:
         "!data/reports/.gitkeep",
         "data/evidence/*",
         "!data/evidence/.gitkeep",
+        "data/exports/*",
+        "!data/exports/.gitkeep",
         "*.bag",
         "*.mcap",
         "*.log",
@@ -192,6 +196,7 @@ def scan_powershell_scripts() -> int:
         "scripts/open_dashboard.ps1",
         "scripts/demo_menu.ps1",
         "scripts/preflight.ps1",
+        "scripts/export_evidence.ps1",
         "scripts/start_offline_demo.ps1",
         "scripts/start_full_sim.ps1",
     ]
@@ -199,7 +204,10 @@ def scan_powershell_scripts() -> int:
         text = read_text(rel_path)
         if "$Root = Split-Path -Parent $PSScriptRoot" not in text and rel_path != "scripts/open_dashboard.ps1":
             return fail(f"PowerShell script does not anchor to project root: {rel_path}")
-    code = require_terms("scripts/demo_menu.ps1", ["启动离线工程演示", "启动完整 PX4/Gazebo 仿真", "运行完整仿真验收"], "Demo menu")
+    code = require_terms("scripts/demo_menu.ps1", ["启动离线工程演示", "启动完整 PX4/Gazebo 仿真", "运行完整仿真验收", "导出演示/验收证据包"], "Demo menu")
+    if code:
+        return code
+    code = require_terms("scripts/export_evidence.ps1", ["inspection-evidence", "evidence_manifest.csv", "dashboard_status.json", "git_last_commit.txt"], "Evidence export")
     if code:
         return code
     print("[PASS] PowerShell helper scripts")
