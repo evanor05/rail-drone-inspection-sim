@@ -8,6 +8,7 @@
 - 演示脚本与仿真操作矩阵：[docs/DEMO_SCRIPT_CN.md](docs/DEMO_SCRIPT_CN.md)
 - 架构说明：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - 需求追踪：[docs/REQUIREMENTS_TRACE.md](docs/REQUIREMENTS_TRACE.md)
+- 贡献与开发说明：[CONTRIBUTING.md](CONTRIBUTING.md)
 - 完整仿真验收清单：[scripts/acceptance_full_sim.md](scripts/acceptance_full_sim.md)
 
 最快演示：

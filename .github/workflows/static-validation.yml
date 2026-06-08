@@ -1,0 +1,23 @@
+name: Static Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  static-check:
+    name: Python, XML, SDF and project layout checks
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run static project check
+        run: python scripts/static_check.py
