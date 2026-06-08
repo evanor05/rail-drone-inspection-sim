@@ -2,6 +2,35 @@
 
 本项目是面向高铁线路巡检的无人机仿真工程演示系统，运行目标环境为 Windows + WSL2 Ubuntu + Docker。第一阶段重点是可运行、可验收的工程链路，而不是玩具级最小 demo：项目包含高铁线路走廊 Gazebo 场景、PX4/Gazebo 启动链路、ROS 2 任务与感知节点、YOLO 兼容检测、Web Dashboard、RViz2 配置、告警持久化和巡检报告生成。
 
+## 快速入口
+
+- 详细中文使用手册：[docs/USAGE_CN.md](docs/USAGE_CN.md)
+- 架构说明：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 需求追踪：[docs/REQUIREMENTS_TRACE.md](docs/REQUIREMENTS_TRACE.md)
+- 完整仿真验收清单：[scripts/acceptance_full_sim.md](scripts/acceptance_full_sim.md)
+
+最快演示：
+
+```powershell
+cd E:\DroneRailInspection
+.\scripts\start_offline_demo.ps1
+```
+
+打开中文 Dashboard：
+
+```text
+http://127.0.0.1:8080
+```
+
+完整 PX4/Gazebo 验收：
+
+```powershell
+cd E:\DroneRailInspection
+docker rm -f drone-rail-inspection
+.\scripts\start_full_sim.ps1 -NoRviz -CleanBuild
+.\scripts\acceptance_full_sim.ps1 -DashboardPort 8080 -MinAlerts 1
+```
+
 ## 技术版本选择
 
 默认技术栈：

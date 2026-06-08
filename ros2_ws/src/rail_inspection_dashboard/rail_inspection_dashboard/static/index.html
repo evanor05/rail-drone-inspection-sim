@@ -1,41 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Drone Rail Inspection</title>
+  <title>高铁无人机巡检调度台</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <header class="topbar">
     <div>
-      <h1>High-Speed Railway Drone Inspection</h1>
-      <p id="mission-summary">Waiting for ROS topics...</p>
+      <h1>高铁无人机巡检调度台</h1>
+      <p id="mission-summary">正在等待 ROS 2 巡检数据...</p>
     </div>
     <nav>
-      <a href="/reports/inspection_report.html" target="_blank">Report</a>
-      <a href="/api/status" target="_blank">API</a>
+      <a href="/reports/inspection_report.html" target="_blank">巡检报告</a>
+      <a href="/api/status" target="_blank">状态 API</a>
     </nav>
   </header>
 
   <main class="layout">
     <section class="video-panel">
-      <div class="section-title">Front Camera / YOLO Overlay</div>
-      <img id="camera" alt="front camera debug stream">
+      <div class="section-title">前视巡检相机 / 检测叠加画面</div>
+      <img id="camera" alt="前视巡检相机检测画面">
     </section>
 
     <section class="side-panel">
       <div class="metrics">
-        <div class="metric"><span>Phase</span><strong id="phase">--</strong></div>
-        <div class="metric"><span>Progress</span><strong id="progress">--</strong></div>
-        <div class="metric"><span>Altitude</span><strong id="altitude">--</strong></div>
-        <div class="metric"><span>Battery</span><strong id="battery">--</strong></div>
+        <div class="metric"><span>任务阶段</span><strong id="phase">--</strong></div>
+        <div class="metric"><span>巡检进度</span><strong id="progress">--</strong></div>
+        <div class="metric"><span>飞行高度</span><strong id="altitude">--</strong></div>
+        <div class="metric"><span>电量</span><strong id="battery">--</strong></div>
       </div>
 
-      <div class="section-title">Latest Detections</div>
+      <div class="section-title">最新检测结果</div>
       <div id="detections" class="list"></div>
 
-      <div class="section-title">Alerts</div>
+      <div class="section-title">告警记录</div>
       <div id="alerts" class="list alert-list"></div>
     </section>
   </main>
