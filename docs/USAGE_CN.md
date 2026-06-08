@@ -439,6 +439,19 @@ docker compose config --quiet
 
 为了降低操作门槛，项目提供了几个常用 PowerShell 脚本。
 
+提交前或演示前预检：
+
+```powershell
+cd E:\DroneRailInspection
+.\scripts\preflight.ps1
+```
+
+如果 Docker Desktop 没启动，但仍想检查除 Compose 外的内容：
+
+```powershell
+.\scripts\preflight.ps1 -SkipDockerCompose
+```
+
 查看当前状态：
 
 ```powershell

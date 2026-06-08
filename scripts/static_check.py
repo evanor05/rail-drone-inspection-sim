@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import ast
-import os
+import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+IGNORED_PARTS = {"build", "install", "log"}
 
 
 def fail(message: str) -> int:
@@ -14,9 +15,13 @@ def fail(message: str) -> int:
     return 1
 
 
+def read_text(rel_path: str) -> str:
+    return (ROOT / rel_path).read_text(encoding="utf-8-sig")
+
+
 def parse_python() -> int:
     for path in ROOT.rglob("*.py"):
-        if any(part in {"build", "install", "log"} for part in path.parts):
+        if any(part in IGNORED_PARTS for part in path.parts):
             continue
         try:
             ast.parse(path.read_text(encoding="utf-8"))
@@ -28,7 +33,7 @@ def parse_python() -> int:
 
 def parse_xml() -> int:
     for path in list(ROOT.rglob("package.xml")) + list(ROOT.rglob("*.sdf")):
-        if any(part in {"build", "install", "log"} for part in path.parts):
+        if any(part in IGNORED_PARTS for part in path.parts):
             continue
         try:
             ET.parse(path)
@@ -42,12 +47,29 @@ def required_files() -> int:
     files = [
         "compose.yaml",
         "docker/Dockerfile",
+        "docker/entrypoint.sh",
         "README.md",
+        "CONTRIBUTING.md",
+        ".github/workflows/static-validation.yml",
+        ".github/ISSUE_TEMPLATE/bug_report.md",
+        ".github/ISSUE_TEMPLATE/feature_request.md",
+        "docs/USAGE_CN.md",
+        "docs/DEMO_SCRIPT_CN.md",
+        "docs/ARCHITECTURE.md",
+        "docs/REQUIREMENTS_TRACE.md",
         "ros2_ws/src/rail_inspection_gazebo/worlds/high_speed_rail_corridor.sdf",
         "ros2_ws/src/rail_inspection_bringup/launch/offline_demo.launch.py",
         "ros2_ws/src/rail_inspection_bringup/launch/full_sim.launch.py",
         "ros2_ws/src/rail_inspection_dashboard/rail_inspection_dashboard/static/index.html",
+        "ros2_ws/src/rail_inspection_dashboard/rail_inspection_dashboard/static/app.js",
+        "ros2_ws/src/rail_inspection_dashboard/rail_inspection_dashboard/static/styles.css",
         "scripts/acceptance_offline.ps1",
+        "scripts/acceptance_full_sim.ps1",
+        "scripts/status.ps1",
+        "scripts/stop_sim.ps1",
+        "scripts/open_dashboard.ps1",
+        "scripts/demo_menu.ps1",
+        "scripts/preflight.ps1",
     ]
     missing = [file for file in files if not (ROOT / file).exists()]
     if missing:
@@ -56,8 +78,15 @@ def required_files() -> int:
     return 0
 
 
+def require_terms(rel_path: str, terms: list[str], label: str) -> int:
+    text = read_text(rel_path)
+    missing = [term for term in terms if term not in text]
+    if missing:
+        return fail(f"{label} missing terms in {rel_path}: {missing}")
+    return 0
+
+
 def scan_world_features() -> int:
-    text = (ROOT / "ros2_ws/src/rail_inspection_gazebo/worlds/high_speed_rail_corridor.sdf").read_text(encoding="utf-8")
     terms = [
         "double_track",
         "ballastless",
@@ -72,15 +101,134 @@ def scan_world_features() -> int:
         "down_rgb_camera",
         "imu",
     ]
-    missing = [term for term in terms if term not in text]
-    if missing:
-        return fail(f"World missing feature terms: {missing}")
+    code = require_terms("ros2_ws/src/rail_inspection_gazebo/worlds/high_speed_rail_corridor.sdf", terms, "World feature coverage")
+    if code:
+        return code
     print("[PASS] World feature coverage")
     return 0
 
 
+def scan_dashboard_localization() -> int:
+    checks = [
+        (
+            "ros2_ws/src/rail_inspection_dashboard/rail_inspection_dashboard/static/index.html",
+            ["高铁无人机巡检调度台", "巡检报告", "状态 API", "运行时长", "当前位置", "告警记录"],
+        ),
+        (
+            "ros2_ws/src/rail_inspection_dashboard/rail_inspection_dashboard/static/app.js",
+            ["轨道上人员", "异常复查", "证据：", "formatDuration", "实时调试图像", "Dashboard 刷新失败"],
+        ),
+        (
+            "ros2_ws/src/rail_inspection_dashboard/rail_inspection_dashboard/static/styles.css",
+            ["status-strip", "camera-caption", "evidence"],
+        ),
+    ]
+    for rel_path, terms in checks:
+        code = require_terms(rel_path, terms, "Dashboard localization")
+        if code:
+            return code
+    print("[PASS] Dashboard localization")
+    return 0
+
+
+def scan_docs() -> int:
+    checks = [
+        ("README.md", ["快速入口", "docs/USAGE_CN.md", "docs/DEMO_SCRIPT_CN.md", "CONTRIBUTING.md", "demo_menu.ps1"]),
+        ("docs/USAGE_CN.md", ["离线工程演示", "完整 PX4 + Gazebo 仿真", "常用辅助脚本", "YOLO", "报告和证据"]),
+        ("docs/DEMO_SCRIPT_CN.md", ["演示脚本与仿真操作矩阵", "仿真模式矩阵", "交互式菜单演示"]),
+        ("CONTRIBUTING.md", ["提交前检查", "离线链路验证", "完整仿真验证", "Dashboard 修改原则"]),
+    ]
+    for rel_path, terms in checks:
+        code = require_terms(rel_path, terms, "Documentation coverage")
+        if code:
+            return code
+    print("[PASS] Documentation coverage")
+    return 0
+
+
+def scan_github_metadata() -> int:
+    workflow = read_text(".github/workflows/static-validation.yml")
+    terms = ["name: Static Validation", "push:", "pull_request:", "ubuntu-22.04", "python scripts/static_check.py"]
+    missing = [term for term in terms if term not in workflow]
+    if missing:
+        return fail(f"GitHub workflow missing terms: {missing}")
+    issue_terms = ["Bug report", "运行模式", "复现步骤", "环境"]
+    code = require_terms(".github/ISSUE_TEMPLATE/bug_report.md", issue_terms, "GitHub bug template")
+    if code:
+        return code
+    feature_terms = ["Feature request", "目标", "验收方式"]
+    code = require_terms(".github/ISSUE_TEMPLATE/feature_request.md", feature_terms, "GitHub feature template")
+    if code:
+        return code
+    print("[PASS] GitHub metadata")
+    return 0
+
+
+def scan_gitignore() -> int:
+    terms = [
+        "data/models/*.pt",
+        "data/models/*.onnx",
+        "data/reports/*",
+        "!data/reports/.gitkeep",
+        "data/evidence/*",
+        "!data/evidence/.gitkeep",
+        "*.bag",
+        "*.mcap",
+        "*.log",
+    ]
+    code = require_terms(".gitignore", terms, "Git ignore rules")
+    if code:
+        return code
+    print("[PASS] Git ignore rules")
+    return 0
+
+
+def scan_powershell_scripts() -> int:
+    scripts = [
+        "scripts/status.ps1",
+        "scripts/stop_sim.ps1",
+        "scripts/open_dashboard.ps1",
+        "scripts/demo_menu.ps1",
+        "scripts/preflight.ps1",
+        "scripts/start_offline_demo.ps1",
+        "scripts/start_full_sim.ps1",
+    ]
+    for rel_path in scripts:
+        text = read_text(rel_path)
+        if "$Root = Split-Path -Parent $PSScriptRoot" not in text and rel_path != "scripts/open_dashboard.ps1":
+            return fail(f"PowerShell script does not anchor to project root: {rel_path}")
+    code = require_terms("scripts/demo_menu.ps1", ["启动离线工程演示", "启动完整 PX4/Gazebo 仿真", "运行完整仿真验收"], "Demo menu")
+    if code:
+        return code
+    print("[PASS] PowerShell helper scripts")
+    return 0
+
+
+def scan_js_syntax_smoke() -> int:
+    text = read_text("ros2_ws/src/rail_inspection_dashboard/rail_inspection_dashboard/static/app.js")
+    pairs = [("{", "}"), ("(", ")"), ("[", "]")]
+    for left, right in pairs:
+        if text.count(left) != text.count(right):
+            return fail(f"Dashboard JS has unbalanced {left}{right}")
+    if re.search(r"\$\{[^}]*$", text):
+        return fail("Dashboard JS appears to contain an unfinished template expression")
+    print("[PASS] Dashboard JS smoke")
+    return 0
+
+
 def main() -> int:
-    checks = [required_files, parse_python, parse_xml, scan_world_features]
+    checks = [
+        required_files,
+        parse_python,
+        parse_xml,
+        scan_world_features,
+        scan_dashboard_localization,
+        scan_docs,
+        scan_github_metadata,
+        scan_gitignore,
+        scan_powershell_scripts,
+        scan_js_syntax_smoke,
+    ]
     for check in checks:
         code = check()
         if code:

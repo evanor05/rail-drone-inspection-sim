@@ -28,6 +28,9 @@ http://127.0.0.1:8080
 常用操作脚本：
 
 ```powershell
+# 提交前/演示前预检
+.\\scripts\\preflight.ps1
+
 # 查看容器、Dashboard、报告和证据状态
 .\scripts\status.ps1
 
