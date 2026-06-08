@@ -1,0 +1,12 @@
+std_msgs/Header header
+string detection_id
+string defect_class
+float32 confidence
+int32 xmin
+int32 ymin
+int32 xmax
+int32 ymax
+geometry_msgs/Point estimated_position
+string camera_frame
+string source_image
+string track_side

@@ -1,0 +1,44 @@
+services:
+  drone-rail:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        PX4_VERSION: ${PX4_VERSION:-v1.16.2}
+        INSTALL_TORCH_CUDA: ${INSTALL_TORCH_CUDA:-false}
+        INSTALL_ULTRALYTICS: ${INSTALL_ULTRALYTICS:-false}
+        GIT_MIRROR_PREFIX: ${GIT_MIRROR_PREFIX:-}
+    image: drone-rail-inspection:humble-px4
+    container_name: drone-rail-inspection
+    ipc: host
+    privileged: true
+    stdin_open: true
+    tty: true
+    ports:
+      - "${DRI_DASHBOARD_PORT:-8080}:${DRI_DASHBOARD_PORT:-8080}"
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-0}
+      XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-/tmp/runtime-root}
+      QT_X11_NO_MITSHM: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      PX4_HOME: /opt/PX4-Autopilot
+      DRI_WORKSPACE: /workspace
+      DRI_REPORT_DIR: /workspace/data/reports
+      DRI_EVIDENCE_DIR: /workspace/data/evidence
+    volumes:
+      - .:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XDG_RUNTIME_DIR:-/tmp}:${XDG_RUNTIME_DIR:-/tmp}:rw
+    working_dir: /workspace
+    command: bash
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

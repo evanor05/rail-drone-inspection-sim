@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drone Rail Inspection</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>High-Speed Railway Drone Inspection</h1>
+      <p id="mission-summary">Waiting for ROS topics...</p>
+    </div>
+    <nav>
+      <a href="/reports/inspection_report.html" target="_blank">Report</a>
+      <a href="/api/status" target="_blank">API</a>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="video-panel">
+      <div class="section-title">Front Camera / YOLO Overlay</div>
+      <img id="camera" alt="front camera debug stream">
+    </section>
+
+    <section class="side-panel">
+      <div class="metrics">
+        <div class="metric"><span>Phase</span><strong id="phase">--</strong></div>
+        <div class="metric"><span>Progress</span><strong id="progress">--</strong></div>
+        <div class="metric"><span>Altitude</span><strong id="altitude">--</strong></div>
+        <div class="metric"><span>Battery</span><strong id="battery">--</strong></div>
+      </div>
+
+      <div class="section-title">Latest Detections</div>
+      <div id="detections" class="list"></div>
+
+      <div class="section-title">Alerts</div>
+      <div id="alerts" class="list alert-list"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

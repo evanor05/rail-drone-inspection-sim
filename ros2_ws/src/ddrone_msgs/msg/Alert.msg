@@ -1,0 +1,11 @@
+std_msgs/Header header
+string alert_id
+string defect_class
+float32 confidence
+geometry_msgs/Pose pose
+string severity
+string evidence_path
+string source_image
+string mission_phase
+string status
+string notes

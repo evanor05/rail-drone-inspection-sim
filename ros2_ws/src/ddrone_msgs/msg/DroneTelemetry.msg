@@ -1,0 +1,9 @@
+std_msgs/Header header
+geometry_msgs/Pose pose
+geometry_msgs/Twist velocity
+float32 battery_percentage
+string nav_state
+bool armed
+bool offboard_available
+float32 ground_speed_mps
+float32 altitude_m
