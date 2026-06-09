@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "name": "default_synthetic_faults",
+  "description": "Deterministic synthetic defects used by the offline and full simulation demo camera.",
+  "faults": [
+    {
+      "defect_class": "person_on_track",
+      "kp_m": 42.0,
+      "lateral_m": -2.0,
+      "bbox": [316, 214, 358, 296],
+      "confidence": 0.91
+    },
+    {
+      "defect_class": "foreign_object",
+      "kp_m": 64.0,
+      "lateral_m": 1.6,
+      "bbox": [338, 304, 390, 342],
+      "confidence": 0.84
+    },
+    {
+      "defect_class": "rock_or_debris",
+      "kp_m": 78.0,
+      "lateral_m": 2.4,
+      "bbox": [413, 310, 466, 346],
+      "confidence": 0.86
+    },
+    {
+      "defect_class": "fastener_missing",
+      "kp_m": 116.0,
+      "lateral_m": -1.55,
+      "bbox": [248, 360, 282, 386],
+      "confidence": 0.82
+    },
+    {
+      "defect_class": "fastener_broken",
+      "kp_m": 132.0,
+      "lateral_m": -1.2,
+      "bbox": [286, 366, 318, 392],
+      "confidence": 0.80
+    },
+    {
+      "defect_class": "fallen_branch",
+      "kp_m": 153.0,
+      "lateral_m": 3.0,
+      "bbox": [382, 255, 492, 294],
+      "confidence": 0.88
+    },
+    {
+      "defect_class": "rail_surface_defect",
+      "kp_m": 188.0,
+      "lateral_m": 1.45,
+      "bbox": [357, 338, 420, 362],
+      "confidence": 0.79
+    },
+    {
+      "defect_class": "sleeper_or_slab_damage",
+      "kp_m": 202.0,
+      "lateral_m": 0.0,
+      "bbox": [294, 372, 364, 408],
+      "confidence": 0.81
+    },
+    {
+      "defect_class": "fence_intrusion_damage",
+      "kp_m": 222.0,
+      "lateral_m": -7.0,
+      "bbox": [104, 244, 174, 330],
+      "confidence": 0.83
+    },
+    {
+      "defect_class": "catenary_or_pole_abnormal",
+      "kp_m": 246.0,
+      "lateral_m": 6.7,
+      "bbox": [488, 92, 548, 232],
+      "confidence": 0.84
+    }
+  ]
+}

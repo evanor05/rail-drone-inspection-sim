@@ -23,6 +23,10 @@ Step "Mission profile check" {
     python .\scripts\mission_profile_check.py
 }
 
+Step "Synthetic scenario check" {
+    python .\scripts\scenario_check.py
+}
+
 if (-not $SkipDockerCompose) {
     Step "Docker Compose config" {
         docker compose config --quiet

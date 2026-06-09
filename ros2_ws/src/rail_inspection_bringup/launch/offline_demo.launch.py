@@ -9,6 +9,7 @@ def generate_launch_description():
     model_path = LaunchConfiguration("model_path")
     use_px4_offboard = LaunchConfiguration("use_px4_offboard")
     mission_profile_path = LaunchConfiguration("mission_profile_path")
+    scenario_path = LaunchConfiguration("scenario_path")
 
     return LaunchDescription(
         [
@@ -16,6 +17,7 @@ def generate_launch_description():
             DeclareLaunchArgument("model_path", default_value="/workspace/data/models/rail_defects.pt"),
             DeclareLaunchArgument("use_px4_offboard", default_value="false"),
             DeclareLaunchArgument("mission_profile_path", default_value="/workspace/data/missions/default_corridor_profile.json"),
+            DeclareLaunchArgument("scenario_path", default_value="/workspace/data/scenarios/default_synthetic_faults.json"),
             Node(
                 package="rail_inspection_control",
                 executable="mission_manager",
@@ -32,7 +34,7 @@ def generate_launch_description():
                 package="rail_inspection_perception",
                 executable="synthetic_scene_publisher",
                 output="screen",
-                parameters=[{"fps": 8.0}],
+                parameters=[{"fps": 8.0, "scenario_path": scenario_path}],
             ),
             Node(
                 package="rail_inspection_perception",

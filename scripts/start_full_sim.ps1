@@ -2,7 +2,8 @@ param(
     [int]$DashboardPort = 8080,
     [switch]$NoRviz,
     [switch]$CleanBuild,
-    [string]$MissionProfile = "/workspace/data/missions/default_corridor_profile.json"
+    [string]$MissionProfile = "/workspace/data/missions/default_corridor_profile.json",
+    [string]$Scenario = "/workspace/data/scenarios/default_synthetic_faults.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,8 +47,10 @@ function Convert-ToContainerWorkspacePath {
 }
 
 $MissionProfileInContainer = Convert-ToContainerWorkspacePath $MissionProfile
+$ScenarioInContainer = Convert-ToContainerWorkspacePath $Scenario
 
 Write-Host "[DRI] Starting full PX4/Gazebo sim dashboard=$DashboardPort rviz=$rviz"
 Write-Host "[DRI] Mission profile: $MissionProfileInContainer"
+Write-Host "[DRI] Synthetic scenario: $ScenarioInContainer"
 $env:DRI_DASHBOARD_PORT = "$DashboardPort"
-docker compose run --rm --name drone-rail-inspection --service-ports -e DRI_SKIP_WORKSPACE_SETUP=1 -e DRI_DASHBOARD_PORT=$DashboardPort -e DRI_MISSION_PROFILE_PATH=$MissionProfileInContainer drone-rail bash -lc "cd /workspace && source /opt/px4_ros2_ws/install/setup.bash && ${clean}colcon --log-base ros2_ws/log build --symlink-install --base-paths ros2_ws/src --build-base ros2_ws/build --install-base ros2_ws/install && source ros2_ws/install/setup.bash && ros2 launch rail_inspection_bringup full_sim.launch.py dashboard_port:=$DashboardPort rviz:=$rviz mission_profile_path:=$MissionProfileInContainer"
+docker compose run --rm --name drone-rail-inspection --service-ports -e DRI_SKIP_WORKSPACE_SETUP=1 -e DRI_DASHBOARD_PORT=$DashboardPort -e DRI_MISSION_PROFILE_PATH=$MissionProfileInContainer -e DRI_SYNTHETIC_SCENARIO_PATH=$ScenarioInContainer drone-rail bash -lc "cd /workspace && source /opt/px4_ros2_ws/install/setup.bash && ${clean}colcon --log-base ros2_ws/log build --symlink-install --base-paths ros2_ws/src --build-base ros2_ws/build --install-base ros2_ws/install && source ros2_ws/install/setup.bash && ros2 launch rail_inspection_bringup full_sim.launch.py dashboard_port:=$DashboardPort rviz:=$rviz mission_profile_path:=$MissionProfileInContainer scenario_path:=$ScenarioInContainer"

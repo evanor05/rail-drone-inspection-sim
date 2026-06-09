@@ -20,6 +20,7 @@ def generate_launch_description():
     px4_home = LaunchConfiguration("px4_home")
     px4_model = LaunchConfiguration("px4_model")
     mission_profile_path = LaunchConfiguration("mission_profile_path")
+    scenario_path = LaunchConfiguration("scenario_path")
 
     gazebo_share = get_package_share_directory("rail_inspection_gazebo")
     default_world = os.path.join(gazebo_share, "worlds", "high_speed_rail_corridor.sdf")
@@ -66,6 +67,7 @@ def generate_launch_description():
             DeclareLaunchArgument("px4_home", default_value="/opt/PX4-Autopilot"),
             DeclareLaunchArgument("px4_model", default_value="gz_x500_depth"),
             DeclareLaunchArgument("mission_profile_path", default_value="/workspace/data/missions/default_corridor_profile.json"),
+            DeclareLaunchArgument("scenario_path", default_value="/workspace/data/scenarios/default_synthetic_faults.json"),
             gz_launch,
             TimerAction(period=2.0, actions=[xrce_agent]),
             TimerAction(period=4.0, actions=[px4_process]),
@@ -113,7 +115,7 @@ def generate_launch_description():
                         package="rail_inspection_perception",
                         executable="synthetic_scene_publisher",
                         output="screen",
-                        parameters=[{"fps": 8.0}],
+                        parameters=[{"fps": 8.0, "scenario_path": scenario_path}],
                         condition=IfCondition(synthetic_camera),
                     ),
                     Node(

@@ -1,8 +1,10 @@
+import json
 import math
 import os
 import time
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from pathlib import Path
+from typing import Any, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -37,6 +39,73 @@ DEFAULT_FAULTS = [
 ]
 
 
+def _finite_float(value: Any, label: str) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a number")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{label} must be finite")
+    return number
+
+
+def _read_object(value: Any, label: str) -> dict:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be an object")
+    return value
+
+
+def _resolve_scenario_path(raw_path: str) -> Optional[Path]:
+    path_value = raw_path.strip() or os.environ.get("DRI_SYNTHETIC_SCENARIO_PATH", "").strip()
+    if not path_value:
+        return None
+    path = Path(path_value).expanduser()
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    return path
+
+
+def _load_synthetic_faults(path: Path, width: int, height: int) -> List[SyntheticFault]:
+    with path.open("r", encoding="utf-8-sig") as handle:
+        data = json.load(handle)
+    scenario = _read_object(data, "scenario")
+    if int(scenario.get("schema_version", 0)) != 1:
+        raise ValueError("schema_version must be 1")
+    raw_faults = scenario.get("faults")
+    if not isinstance(raw_faults, list) or not raw_faults:
+        raise ValueError("faults must be a non-empty list")
+
+    faults: List[SyntheticFault] = []
+    names = set(FAULT_CLASSES)
+    for index, item in enumerate(raw_faults):
+        fault = _read_object(item, f"faults[{index}]")
+        defect_class = str(fault.get("defect_class", "")).strip()
+        if defect_class not in names:
+            raise ValueError(f"faults[{index}].defect_class {defect_class!r} is invalid")
+        bbox_values = fault.get("bbox")
+        if not isinstance(bbox_values, list) or len(bbox_values) != 4:
+            raise ValueError(f"faults[{index}].bbox must be [xmin, ymin, xmax, ymax]")
+        bbox = tuple(int(_finite_float(value, f"faults[{index}].bbox")) for value in bbox_values)
+        x1, y1, x2, y2 = bbox
+        if not (0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height):
+            raise ValueError(f"faults[{index}].bbox out of bounds: {bbox}")
+        confidence = _finite_float(fault.get("confidence"), f"faults[{index}].confidence")
+        if not 0.1 <= confidence <= 1.0:
+            raise ValueError(f"faults[{index}].confidence must be in [0.1, 1.0]")
+        kp_m = _finite_float(fault.get("kp_m"), f"faults[{index}].kp_m")
+        if kp_m < 0.0:
+            raise ValueError(f"faults[{index}].kp_m must be non-negative")
+        faults.append(
+            SyntheticFault(
+                defect_class=defect_class,
+                kp_m=kp_m,
+                lateral_m=_finite_float(fault.get("lateral_m"), f"faults[{index}].lateral_m"),
+                bbox=(x1, y1, x2, y2),
+                confidence=confidence,
+            )
+        )
+    return faults
+
+
 class SyntheticScenePublisher(Node):
     """Publishes deterministic railway inspection imagery for offline and CI acceptance."""
 
@@ -49,6 +118,7 @@ class SyntheticScenePublisher(Node):
         self.declare_parameter("fps", 8.0)
         self.declare_parameter("camera_frame", "front_camera_optical")
         self.declare_parameter("save_reference_frames", True)
+        self.declare_parameter("scenario_path", "/workspace/data/scenarios/default_synthetic_faults.json")
 
         self.width = int(self.get_parameter("width").value)
         self.height = int(self.get_parameter("height").value)
@@ -58,6 +128,14 @@ class SyntheticScenePublisher(Node):
         self.frame_index = 0
         self.start_time = time.monotonic()
         self.latest_telemetry: Optional[DroneTelemetry] = None
+        self.faults = DEFAULT_FAULTS
+        scenario_path = _resolve_scenario_path(str(self.get_parameter("scenario_path").value or ""))
+        if scenario_path is not None:
+            try:
+                self.faults = _load_synthetic_faults(scenario_path, self.width, self.height)
+                self.get_logger().info(f"Loaded synthetic scenario {scenario_path} with {len(self.faults)} faults.")
+            except Exception as exc:
+                self.get_logger().warn(f"Failed to load synthetic scenario {scenario_path}: {exc}; using defaults.")
 
         self.front_pub = self.create_publisher(Image, str(self.get_parameter("front_topic").value), 10)
         self.down_pub = self.create_publisher(Image, str(self.get_parameter("down_topic").value), 10)
@@ -155,7 +233,7 @@ class SyntheticScenePublisher(Node):
 
         cv2.putText(img, f"KP {progress_m/1000.0:.3f} km", (18, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (20, 30, 35), 2)
         visible = []
-        for fault in DEFAULT_FAULTS:
+        for fault in self.faults:
             distance = fault.kp_m - progress_m
             if -5.0 <= distance <= 32.0:
                 visible.append(fault)

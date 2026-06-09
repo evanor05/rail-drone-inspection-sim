@@ -58,6 +58,7 @@ def required_files() -> int:
         "docs/ARCHITECTURE.md",
         "docs/REQUIREMENTS_TRACE.md",
         "data/missions/default_corridor_profile.json",
+        "data/scenarios/default_synthetic_faults.json",
         "data/datasets/rail_defects_yolo/data.yaml",
         "data/datasets/rail_defects_yolo/README.md",
         "data/datasets/rail_defects_yolo/images/train/.gitkeep",
@@ -86,6 +87,7 @@ def required_files() -> int:
         "scripts/dataset_check.py",
         "scripts/model_check.py",
         "scripts/mission_profile_check.py",
+        "scripts/scenario_check.py",
         "data/exports/.gitkeep",
     ]
     missing = [file for file in files if not (ROOT / file).exists()]
@@ -197,6 +199,38 @@ def scan_mission_profile() -> int:
     return 0
 
 
+def scan_synthetic_scenario() -> int:
+    try:
+        import importlib.util
+
+        module_path = ROOT / "scripts" / "scenario_check.py"
+        spec = importlib.util.spec_from_file_location("scenario_check", module_path)
+        if spec is None or spec.loader is None:
+            return fail("Unable to load scenario_check.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        scenario = module.load_scenario(ROOT / "data" / "scenarios" / "default_synthetic_faults.json")
+        module.validate_scenario(scenario)
+    except Exception as exc:
+        return fail(f"Synthetic scenario coverage failed: {exc}")
+    code = require_terms(
+        "data/scenarios/default_synthetic_faults.json",
+        ["default_synthetic_faults", "person_on_track", "fastener_broken", "sleeper_or_slab_damage"],
+        "Synthetic scenario",
+    )
+    if code:
+        return code
+    code = require_terms(
+        "ros2_ws/src/rail_inspection_perception/rail_inspection_perception/synthetic_scene_publisher.py",
+        ["scenario_path", "DRI_SYNTHETIC_SCENARIO_PATH", "_load_synthetic_faults"],
+        "Synthetic scene scenario support",
+    )
+    if code:
+        return code
+    print("[PASS] Synthetic scenario coverage")
+    return 0
+
+
 def scan_github_metadata() -> int:
     workflow = read_text(".github/workflows/static-validation.yml")
     terms = ["name: Static Validation", "push:", "pull_request:", "ubuntu-22.04", "python scripts/static_check.py"]
@@ -280,10 +314,13 @@ def scan_powershell_scripts() -> int:
     code = require_terms("scripts/mission_profile_check.py", ["default_corridor_profile.json", "TAKEOFF", "ENTER_CORRIDOR", "LAND"], "Mission profile check")
     if code:
         return code
-    code = require_terms("scripts/start_offline_demo.ps1", ["MissionProfile", "mission_profile_path"], "Offline mission profile launch")
+    code = require_terms("scripts/scenario_check.py", ["default_synthetic_faults.json", "FAULT_CLASSES", "bbox"], "Scenario check")
     if code:
         return code
-    code = require_terms("scripts/start_full_sim.ps1", ["MissionProfile", "mission_profile_path"], "Full mission profile launch")
+    code = require_terms("scripts/start_offline_demo.ps1", ["MissionProfile", "Scenario", "mission_profile_path", "scenario_path"], "Offline profile/scenario launch")
+    if code:
+        return code
+    code = require_terms("scripts/start_full_sim.ps1", ["MissionProfile", "Scenario", "mission_profile_path", "scenario_path"], "Full profile/scenario launch")
     if code:
         return code
     code = require_terms("ros2_ws/src/rail_inspection_rl/rail_inspection_rl/evaluate.py", ["success_rate", "RulePolicyAdapter", "mean_total_reward"], "RL evaluation")
@@ -317,6 +354,7 @@ def main() -> int:
         scan_dashboard_localization,
         scan_docs,
         scan_mission_profile,
+        scan_synthetic_scenario,
         scan_github_metadata,
         scan_gitignore,
         scan_powershell_scripts,

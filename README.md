@@ -84,6 +84,7 @@ E:\DroneRailInspection
   scripts/
   data/
     missions/       # 巡检任务剖面 JSON，定义线路、航点、速度和复查参数
+    scenarios/      # 合成缺陷场景 JSON，定义故障类别、里程和画面位置
     models/        # 放置 rail_defects.pt 或 yolov8n.pt
     evidence/      # 检测截图和图像证据
     reports/       # JSON / Markdown / HTML 巡检报告
@@ -266,12 +267,15 @@ cd E:\DroneRailInspection
 
 ```text
 data/missions/default_corridor_profile.json
+data/scenarios/default_synthetic_faults.json
 ```
 
-这份任务剖面定义了起飞点、进入线路走廊、沿轨巡检航点、弯道入口、返航、降落以及异常复查偏移。需要演示不同线路区间或不同速度/高度时，可以复制该 JSON 后指定新配置：
+任务剖面定义了起飞点、进入线路走廊、沿轨巡检航点、弯道入口、返航、降落以及异常复查偏移。合成场景定义了十类故障的里程、横向偏移、画面 bbox 和置信度。需要演示不同线路区间、不同速度/高度或不同缺陷分布时，可以复制 JSON 后指定新配置：
 
 ```powershell
-.\scripts\start_offline_demo.ps1 -MissionProfile data\missions\default_corridor_profile.json
+.\scripts\start_offline_demo.ps1 `
+  -MissionProfile data\missions\default_corridor_profile.json `
+  -Scenario data\scenarios\default_synthetic_faults.json
 ```
 
 启动脚本会把项目内相对路径自动映射成容器内 `/workspace/...` 路径。
@@ -308,6 +312,7 @@ ros2 topic echo --once /dri/alerts
 
 ```powershell
 python .\scripts\mission_profile_check.py
+python .\scripts\scenario_check.py
 ```
 
 报告输出：
@@ -596,6 +601,36 @@ python .\scripts\mission_profile_check.py
 
 这个能力用于后续扩展多线路、多缺陷分布、多速度策略和 RL episode 场景随机化。
 
+## 合成缺陷场景
+
+离线演示和完整仿真的 synthetic camera 现在读取 `data/scenarios/default_synthetic_faults.json`。该文件覆盖十类故障：
+
+- `person_on_track`
+- `foreign_object`
+- `rock_or_debris`
+- `fallen_branch`
+- `fastener_missing`
+- `fastener_broken`
+- `rail_surface_defect`
+- `sleeper_or_slab_damage`
+- `fence_intrusion_damage`
+- `catenary_or_pole_abnormal`
+
+每个目标包含线路里程 `kp_m`、横向位置 `lateral_m`、图像框 `bbox` 和合成置信度 `confidence`。启动时可以指定：
+
+```powershell
+.\scripts\start_offline_demo.ps1 -Scenario data\scenarios\default_synthetic_faults.json
+.\scripts\start_full_sim.ps1 -NoRviz -Scenario data\scenarios\default_synthetic_faults.json
+```
+
+提交前校验：
+
+```powershell
+python .\scripts\scenario_check.py
+```
+
+这个配置让后续扩展公开数据集映射、场景随机化和 RL episode 评估更直接：同一条任务剖面可以搭配不同缺陷分布，同一组缺陷也可以在不同航线速度下复现。
+
 ## 后续发展方向
 
 项目后续建议按“先工程可用，再算法增强，再真实迁移”的顺序推进。
@@ -631,6 +666,7 @@ python .\scripts\mission_profile_check.py
 - 增加 GPS/RTK 误差、风扰动和定位漂移模型。
 - 建立可批量生成缺陷位置和类别的场景参数化脚本。
 - 将 `data/missions/*.json` 扩展为多线路任务库，并和 Gazebo 场景生成、合成缺陷位置、报告里程标统一起来。
+- 将 `data/scenarios/*.json` 扩展为训练/验证/压力测试场景集，支持不同缺陷密度、目标尺寸和类别组合。
 
 ### 阶段 4：巡检策略和路径规划
 

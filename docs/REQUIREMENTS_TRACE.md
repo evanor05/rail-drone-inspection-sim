@@ -22,7 +22,7 @@
 | 5 | ROS 2 读取状态/图像/环境并发布 offboard 指令 | `mission_manager.py` 订阅状态和告警，发布 `/dri/offboard/setpoint`，在有 `px4_msgs` 时发布 `/fmu/in/*` | `/dri/drone/telemetry`、`/dri/offboard/setpoint`、`/fmu/in/trajectory_setpoint` | 已实现 |
 | 6 | 自动巡检流程 | 规则状态机覆盖起飞、进入线路走廊、沿轨巡检、异常复查、记录告警、继续巡检、返航降落；航线和复查参数已抽成 `data/missions/default_corridor_profile.json` | `/dri/mission/state`、Dashboard 任务阶段、告警日志、`python scripts/mission_profile_check.py` | 已实现并支持配置化 |
 | 7 | YOLO 检测节点 | `rail_inspection_perception/yolo_detector.py` 支持 Ultralytics 权重和 fallback detector，发布检测、告警和 debug image | `/dri/detections`、`/dri/alerts`、`/dri/perception/debug_image` | 已实现 |
-| 8 | 十类故障类别 | `fault_catalog.py`、合成场景和检测节点覆盖用户指定类别；真实精度依赖后续 `rail_defects.pt` | `README.md` 类别清单、`static_check.py`、报告 smoke | 已建模，真实训练待扩展 |
+| 8 | 十类故障类别 | `fault_catalog.py`、`data/scenarios/default_synthetic_faults.json`、合成场景和检测节点覆盖用户指定类别；真实精度依赖后续 `rail_defects.pt` | `README.md` 类别清单、`python scripts/scenario_check.py`、`static_check.py`、报告 smoke | 已建模并支持场景配置化，真实训练待扩展 |
 | 9 | Web Dashboard | `rail_inspection_dashboard/web_dashboard.py` 和中文静态页面展示状态、任务、检测、告警、报告入口 | `http://127.0.0.1:8080`、`/api/status`、`/api/alerts`、`/api/reports` | 已实现 |
 | 10 | RViz2 可视化 | `rail_inspection_bringup/rviz/rail_inspection.rviz` 配置路径、marker、TF、debug image 和关键 topic | `.\scripts\start_full_sim.ps1` 不加 `-NoRviz` | 已配置 |
 | 11 | 自动巡检报告 | `report_generator.py` + `report_templates.py` 输出 JSON、Markdown、HTML，包含时间、类别、置信度、位置和证据路径 | `python scripts/report_smoke.py`、`data/reports/inspection_report.*` | 已实现 |
@@ -63,13 +63,19 @@ python .\scripts\static_check.py
 python .\scripts\mission_profile_check.py
 ```
 
-3. 报告模板 smoke：
+3. 合成缺陷场景校验：
+
+```powershell
+python .\scripts\scenario_check.py
+```
+
+4. 报告模板 smoke：
 
 ```powershell
 python .\scripts\report_smoke.py
 ```
 
-4. RL 接口 smoke：
+5. RL 接口 smoke：
 
 ```powershell
 python .\scripts\rl_smoke.py
@@ -77,7 +83,7 @@ python .\scripts\rl_smoke.py
 
 宿主机没有 Gymnasium/Numpy 时该命令会返回 SKIP；在 Docker/ROS 环境内可用 `ros2 run rail_inspection_rl rl_policy_eval --episodes 3 --max-steps 360` 运行真实基线评估。
 
-5. Docker/脚本预检：
+6. Docker/脚本预检：
 
 ```powershell
 .\scripts\preflight.ps1
@@ -89,14 +95,14 @@ python .\scripts\rl_smoke.py
 .\scripts\preflight.ps1 -SkipDockerCompose
 ```
 
-6. 离线工程演示验收：
+7. 离线工程演示验收：
 
 ```powershell
 .\scripts\start_offline_demo.ps1
 .\scripts\acceptance_offline.ps1 -Seconds 35
 ```
 
-7. 完整 PX4/Gazebo 验收：
+8. 完整 PX4/Gazebo 验收：
 
 ```powershell
 docker rm -f drone-rail-inspection
