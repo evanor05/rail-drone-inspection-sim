@@ -345,6 +345,15 @@ cd E:\DroneRailInspection
 .\scripts\acceptance_offline.ps1 -Seconds 35
 ```
 
+如果启动时使用了自定义任务或缺陷场景，离线验收也传同样参数：
+
+```powershell
+.\scripts\acceptance_offline.ps1 `
+  -Seconds 35 `
+  -MissionProfile data\missions\default_corridor_profile.json `
+  -Scenario data\scenarios\default_synthetic_faults.json
+```
+
 该脚本会在容器内构建 ROS workspace，启动离线链路，等待检测和告警，然后检查生成的报告和证据文件。
 
 如果 Docker 暂时不可用，可以用本地 smoke test 验证报告和证据链路：

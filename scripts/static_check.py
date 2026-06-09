@@ -323,6 +323,9 @@ def scan_powershell_scripts() -> int:
     code = require_terms("scripts/start_full_sim.ps1", ["MissionProfile", "Scenario", "mission_profile_path", "scenario_path"], "Full profile/scenario launch")
     if code:
         return code
+    code = require_terms("scripts/acceptance_offline.ps1", ["MissionProfile", "Scenario", "mission_profile_path", "scenario_path"], "Offline acceptance profile/scenario launch")
+    if code:
+        return code
     code = require_terms("ros2_ws/src/rail_inspection_rl/rail_inspection_rl/evaluate.py", ["success_rate", "RulePolicyAdapter", "mean_total_reward"], "RL evaluation")
     if code:
         return code

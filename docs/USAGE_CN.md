@@ -191,6 +191,15 @@ cd E:\DroneRailInspection
 .\scripts\acceptance_offline.ps1 -Seconds 35
 ```
 
+如果启动时指定了自定义任务剖面或合成场景，验收脚本也传同样参数：
+
+```powershell
+.\scripts\acceptance_offline.ps1 `
+  -Seconds 35 `
+  -MissionProfile data\missions\default_corridor_profile.json `
+  -Scenario data\scenarios\default_synthetic_faults.json
+```
+
 通过后会检查：
 
 - ROS 2 工作区构建。
