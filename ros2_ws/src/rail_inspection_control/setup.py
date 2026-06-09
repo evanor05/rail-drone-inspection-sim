@@ -19,6 +19,7 @@ setup(
     entry_points={
         "console_scripts": [
             "mission_manager = rail_inspection_control.mission_manager:main",
+            "runtime_info_publisher = rail_inspection_control.runtime_info_publisher:main",
         ],
     },
 )

@@ -314,6 +314,7 @@ ros2 topic echo --once /dri/detections
 ros2 topic echo --once /dri/alerts
 ros2 topic info /dri/camera/front/image_raw
 ros2 topic info /dri/perception/debug_image
+ros2 topic echo --once /dri/runtime/info
 ```
 
 完整仿真中还可以看：
@@ -450,6 +451,7 @@ E:\DroneRailInspection\data\exports\inspection-evidence-<timestamp>
 - `evidence/`：最近的证据图片或文本证据，默认最多复制 50 个。
 - `evidence_manifest.csv`：完整证据文件索引，包含文件名、大小、时间和原始路径。
 - `status/dashboard_status.json`：导出时 Dashboard API 快照；如果 Dashboard 未运行，会生成错误说明。
+- `status/runtime_info.json`：任务剖面、合成缺陷场景和模型资产快照；Dashboard 未运行时也会生成。
 - `status/git_status.txt` 和 `status/git_last_commit.txt`：当前 Git 状态和最新提交。
 - `status/docker_ps.txt` 和 `status/docker_info.txt`：Docker 容器状态和 Docker 环境摘要。
 - `summary.json`：本次导出的机器可读摘要。
@@ -478,6 +480,8 @@ JSON 中保留的核心字段：
 - `evidence_path`：证据文件路径。
 
 Markdown 和 HTML 报告默认使用中文标题、中文字段名和中文类别说明，适合演示和人工查看；JSON 适合后续接入数据库、线路资产系统或二次分析脚本。
+
+报告还包含“运行配置”章节，用于追溯本次演示使用的任务剖面、合成缺陷场景、模型资产模式和 ROS runtime 设置。Dashboard 的 `/api/status` 也会返回同样的 `runtime` 字段。
 
 本地验证中文报告模板：
 

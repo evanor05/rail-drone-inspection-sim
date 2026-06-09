@@ -51,6 +51,31 @@ def main() -> int:
             "latest_position": {"x": 42.0, "y": -2.0, "z": 6.5},
             "battery_percentage": 97.5,
         },
+        "runtime": {
+            "mode": "report_smoke",
+            "mission_profile": {
+                "path": "data/missions/default_corridor_profile.json",
+                "name": "default_corridor_profile.json",
+                "config_name": "default_high_speed_rail_corridor",
+                "exists": True,
+                "waypoints": 9,
+            },
+            "synthetic_scenario": {
+                "path": "data/scenarios/default_synthetic_faults.json",
+                "name": "default_synthetic_faults.json",
+                "config_name": "default_synthetic_faults",
+                "exists": True,
+                "faults": 10,
+            },
+            "model_assets": {
+                "selected": {
+                    "name": "synthetic_fallback",
+                    "mode": "synthetic_fallback",
+                    "role": "deterministic synthetic detector used for demos and acceptance",
+                }
+            },
+            "ros_domain_id": "42",
+        },
         "alerts": [
             {
                 "alert_id": "report-smoke-001",
@@ -76,7 +101,7 @@ def main() -> int:
     html = module.render_html(payload)
     md_path.write_text(md, encoding="utf-8")
     html_path.write_text(html, encoding="utf-8")
-    required_terms = ["高铁无人机巡检报告", "轨道上人员", "严重", "异常复查", "证据路径"]
+    required_terms = ["高铁无人机巡检报告", "轨道上人员", "严重", "异常复查", "证据路径", "运行配置", "模型模式"]
     missing = [term for term in required_terms if term not in md + html]
     if missing:
         print(f"[FAIL] Report smoke missing terms: {missing}")

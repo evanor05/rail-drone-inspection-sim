@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 import rclpy
 from ddrone_msgs.msg import Alert, Detection, DroneTelemetry, MissionState
 from rclpy.node import Node
+from std_msgs.msg import String
 
 
 from rail_inspection_report.report_templates import enrich_alert, label_phase, render_html, render_markdown
@@ -25,6 +26,7 @@ class ReportGenerator(Node):
         self.detections_seen = 0
         self.latest_telemetry: Optional[DroneTelemetry] = None
         self.latest_mission: Optional[MissionState] = None
+        self.runtime_info: Optional[Dict] = None
         self.started_at = datetime.now(timezone.utc)
         self.last_write = 0.0
 
@@ -32,6 +34,7 @@ class ReportGenerator(Node):
         self.detection_sub = self.create_subscription(Detection, "/dri/detections", self._on_detection, 50)
         self.telemetry_sub = self.create_subscription(DroneTelemetry, "/dri/drone/telemetry", self._on_telemetry, 20)
         self.mission_sub = self.create_subscription(MissionState, "/dri/mission/state", self._on_mission, 20)
+        self.runtime_sub = self.create_subscription(String, "/dri/runtime/info", self._on_runtime_info, 10)
         self.timer = self.create_timer(float(self.get_parameter("report_interval_seconds").value), self.write_reports)
 
     def _on_alert(self, msg: Alert) -> None:
@@ -48,6 +51,12 @@ class ReportGenerator(Node):
 
     def _on_mission(self, msg: MissionState) -> None:
         self.latest_mission = msg
+
+    def _on_runtime_info(self, msg: String) -> None:
+        try:
+            self.runtime_info = json.loads(msg.data)
+        except json.JSONDecodeError:
+            self.runtime_info = {"raw": msg.data, "parse_error": "invalid JSON"}
 
     def _alert_to_dict(self, msg: Alert) -> Dict:
         base = {
@@ -99,6 +108,7 @@ class ReportGenerator(Node):
         payload = {
             "summary": self._summary(),
             "alerts": self.alerts,
+            "runtime": self.runtime_info or {},
         }
         json_path = os.path.join(self.report_dir, "inspection_report.json")
         md_path = os.path.join(self.report_dir, "inspection_report.md")

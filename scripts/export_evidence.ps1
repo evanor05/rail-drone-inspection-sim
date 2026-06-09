@@ -28,6 +28,77 @@ function Invoke-Capture([scriptblock]$Block) {
     }
 }
 
+function Get-JsonConfigSummary([string]$PathValue) {
+    $summary = [ordered]@{
+        path = $PathValue
+        name = [System.IO.Path]::GetFileName($PathValue)
+        exists = Test-Path -LiteralPath $PathValue
+    }
+    if ($summary.exists) {
+        try {
+            $payload = Get-Content -Raw -LiteralPath $PathValue | ConvertFrom-Json
+            if ($payload.name) {
+                $summary.config_name = $payload.name
+            }
+            if ($payload.waypoints) {
+                $summary.waypoints = @($payload.waypoints).Count
+            }
+            if ($payload.faults) {
+                $summary.faults = @($payload.faults).Count
+            }
+        } catch {
+            $summary.read_error = $_.Exception.Message
+        }
+    }
+    return $summary
+}
+
+function Get-ModelAssetsSummary {
+    $modelDir = Join-Path $Root "data\models"
+    $priority = @(
+        @{ file = "rail_defects.pt"; mode = "rail_specific_yolo"; role = "rail-specific PyTorch YOLO model" },
+        @{ file = "rail_defects.onnx"; mode = "rail_specific_onnx"; role = "rail-specific ONNX export" },
+        @{ file = "rail_defects.engine"; mode = "rail_specific_tensorrt"; role = "rail-specific TensorRT export" },
+        @{ file = "yolov8n.pt"; mode = "generic_yolo"; role = "generic Ultralytics YOLO model" }
+    )
+    $models = @()
+    $selected = $null
+    foreach ($item in $priority) {
+        $path = Join-Path $modelDir $item.file
+        $exists = Test-Path -LiteralPath $path
+        $entry = [ordered]@{
+            name = [System.IO.Path]::GetFileNameWithoutExtension($item.file)
+            path = $path
+            exists = $exists
+            role = $item.role
+            size_bytes = if ($exists) { (Get-Item -LiteralPath $path).Length } else { 0 }
+        }
+        $models += $entry
+        if ($null -eq $selected -and $exists) {
+            $selected = [ordered]@{
+                name = $entry.name
+                path = $path
+                mode = $item.mode
+                role = $item.role
+            }
+        }
+    }
+    if ($null -eq $selected) {
+        $selected = [ordered]@{
+            name = "synthetic_fallback"
+            path = ""
+            mode = "synthetic_fallback"
+            role = "deterministic synthetic detector used for demos and acceptance"
+        }
+    }
+    return [ordered]@{
+        model_dir = $modelDir
+        selected = $selected
+        models = $models
+        expected_runtime_priority = @($priority | ForEach-Object { $_.file })
+    }
+}
+
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $exportBase = Resolve-ProjectPath $ExportRoot
 $exportDir = Join-Path $exportBase "inspection-evidence-$timestamp"
@@ -116,6 +187,17 @@ try {
     Write-Host "Dashboard API unavailable: $($_.Exception.Message)"
 }
 
+Write-Host "== Capture runtime configuration =="
+$runtimeInfoPath = Join-Path $statusDir "runtime_info.json"
+$runtimeInfo = [ordered]@{
+    generated_at_local = (Get-Date).ToString("o")
+    mission_profile = Get-JsonConfigSummary (Join-Path $Root "data\missions\default_corridor_profile.json")
+    synthetic_scenario = Get-JsonConfigSummary (Join-Path $Root "data\scenarios\default_synthetic_faults.json")
+    model_assets = Get-ModelAssetsSummary
+}
+($runtimeInfo | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath $runtimeInfoPath -Encoding UTF8
+$summary.runtime_info = $runtimeInfo
+
 Write-Host "== Capture Git, Docker, and host status =="
 $gitStatusPath = Join-Path $statusDir "git_status.txt"
 $gitLastCommitPath = Join-Path $statusDir "git_last_commit.txt"
@@ -158,6 +240,7 @@ $readmeLines = @(
     "- evidence/: copied evidence files, capped by MaxEvidenceFiles.",
     "- evidence_manifest.csv: full evidence file index.",
     "- status/: Git, Docker, Dashboard API, and host snapshots.",
+    "- status/runtime_info.json: mission profile, synthetic scenario, and model asset snapshot.",
     "- summary.json: machine-readable export summary.",
     "",
     "If status/dashboard_status_error.txt exists, the dashboard was not running or the port was not reachable during export."

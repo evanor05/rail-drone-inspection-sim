@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 
 
 class DashboardState:
@@ -26,6 +27,7 @@ class DashboardState:
         self.mission: Optional[Dict] = None
         self.detections: List[Dict] = []
         self.alerts: List[Dict] = []
+        self.runtime: Optional[Dict] = None
         self.last_image_jpeg_b64: Optional[str] = None
         self.started_at = time.time()
 
@@ -37,6 +39,7 @@ class DashboardState:
                 "mission": self.mission,
                 "detections": self.detections[-30:],
                 "alerts": self.alerts[-100:],
+                "runtime": self.runtime,
                 "last_image_jpeg_b64": self.last_image_jpeg_b64,
             }
 
@@ -53,6 +56,7 @@ class DashboardBridge(Node):
         self.create_subscription(Detection, "/dri/detections", self._on_detection, 50)
         self.create_subscription(Alert, "/dri/alerts", self._on_alert, 50)
         self.create_subscription(Image, "/dri/perception/debug_image", self._on_image, 5)
+        self.create_subscription(String, "/dri/runtime/info", self._on_runtime_info, 10)
 
     def _on_telemetry(self, msg: DroneTelemetry) -> None:
         with STATE.lock:
@@ -128,6 +132,14 @@ class DashboardBridge(Node):
             return
         with STATE.lock:
             STATE.last_image_jpeg_b64 = base64.b64encode(encoded.tobytes()).decode("ascii")
+
+    def _on_runtime_info(self, msg: String) -> None:
+        try:
+            runtime = json.loads(msg.data)
+        except json.JSONDecodeError:
+            runtime = {"raw": msg.data, "parse_error": "invalid JSON"}
+        with STATE.lock:
+            STATE.runtime = runtime
 
 
 def create_app(static_dir: str, report_dir: str) -> FastAPI:

@@ -306,6 +306,7 @@ ros2 topic echo --once /dri/mission/state
 ros2 topic echo --once /dri/drone/telemetry
 ros2 topic echo --once /dri/detections
 ros2 topic echo --once /dri/alerts
+ros2 topic echo --once /dri/runtime/info
 ```
 
 任务剖面静态校验：
@@ -639,6 +640,28 @@ python .\scripts\scenario_check.py
 ```
 
 这个配置让后续扩展公开数据集映射、场景随机化和 RL episode 评估更直接：同一条任务剖面可以搭配不同缺陷分布，同一组缺陷也可以在不同航线速度下复现。
+
+## 运行配置追溯
+
+启动后 `runtime_info_publisher` 会发布 `/dri/runtime/info`，内容包括：
+
+- 当前运行模式：`offline_demo` 或 `px4_gazebo_sitl`。
+- 任务剖面路径、名称和航点数量。
+- 合成缺陷场景路径、名称和目标数量。
+- 当前 YOLO 模型资产模式：`rail_specific_yolo`、`rail_specific_onnx`、`rail_specific_tensorrt`、`generic_yolo` 或 `synthetic_fallback`。
+- `ROS_DOMAIN_ID`、`RMW_IMPLEMENTATION`、Dashboard 端口和 workspace 路径。
+
+这些信息会进入：
+
+- Dashboard `/api/status` 的 `runtime` 字段。
+- 中文巡检报告 JSON / Markdown / HTML 的“运行配置”章节。
+- 证据包 `status/runtime_info.json`，即使 Dashboard 未运行也会从本地配置文件生成。
+
+快速查看：
+
+```bash
+ros2 topic echo --once /dri/runtime/info
+```
 
 ## 后续发展方向
 

@@ -31,6 +31,19 @@ def generate_launch_description():
                 ],
             ),
             Node(
+                package="rail_inspection_control",
+                executable="runtime_info_publisher",
+                output="screen",
+                parameters=[
+                    {
+                        "mode": "offline_demo",
+                        "mission_profile_path": mission_profile_path,
+                        "scenario_path": scenario_path,
+                        "model_dir": "/workspace/data/models",
+                    }
+                ],
+            ),
+            Node(
                 package="rail_inspection_perception",
                 executable="synthetic_scene_publisher",
                 output="screen",

@@ -10,6 +10,9 @@ const uptime = document.getElementById("uptime");
 const position = document.getElementById("position");
 const counts = document.getElementById("counts");
 const targetName = document.getElementById("target");
+const missionProfile = document.getElementById("mission-profile");
+const scenarioProfile = document.getElementById("scenario-profile");
+const modelMode = document.getElementById("model-mode");
 const detections = document.getElementById("detections");
 const alerts = document.getElementById("alerts");
 
@@ -109,6 +112,17 @@ function formatDuration(seconds) {
   return `${minutes}分${String(remain).padStart(2, "0")}秒`;
 }
 
+function configLabel(config) {
+  if (!config) {
+    return "--";
+  }
+  const label = config.config_name || config.name || "--";
+  const count = typeof config.waypoints === "number"
+    ? `${config.waypoints} 航点`
+    : (typeof config.faults === "number" ? `${config.faults} 目标` : "");
+  return count ? `${label} / ${count}` : label;
+}
+
 function renderMissionSummary(mission, telemetry, alertCount) {
   if (!mission && !telemetry) {
     return "正在等待 ROS 2 巡检数据...";
@@ -165,6 +179,9 @@ async function refresh() {
     position.textContent = telemetry.position ? formatPosition(telemetry.position) : "--";
     counts.textContent = `${detectionCount} / ${alertCount}`;
     targetName.textContent = labelFrom(TARGET_LABELS, mission.active_target, mission.active_target || "--");
+    missionProfile.textContent = configLabel(data.runtime?.mission_profile);
+    scenarioProfile.textContent = configLabel(data.runtime?.synthetic_scenario);
+    modelMode.textContent = data.runtime?.model_assets?.selected?.mode || "--";
     if (data.last_image_jpeg_b64) {
       camera.src = `data:image/jpeg;base64,${data.last_image_jpeg_b64}`;
       cameraCaption.textContent = `实时调试图像 | 检测 ${detectionCount} 条 | 告警 ${alertCount} 条`;

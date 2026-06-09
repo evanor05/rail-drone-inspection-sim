@@ -3,7 +3,9 @@
 ```mermaid
 flowchart LR
   Profile["data/missions/default_corridor_profile.json"] --> Mission["rail_inspection_control mission_manager"]
+  Profile --> RuntimeInfo["runtime_info_publisher"]
   Scenario["data/scenarios/default_synthetic_faults.json"] --> Synthetic["合成巡检场景 publisher"]
+  Scenario --> RuntimeInfo
   Gazebo["Gazebo Harmonic 高铁线路世界"] --> Bridge["ros_gz_bridge"]
   PX4["PX4 SITL gz_x500_depth"] <--> XRCE["Micro XRCE-DDS Agent"]
   XRCE <--> ROSPX4["/fmu/in 与 /fmu/out ROS 2 topic"]
@@ -12,6 +14,7 @@ flowchart LR
   Mission["rail_inspection_control mission_manager"] --> Setpoint["/dri/offboard/setpoint"]
   Mission --> ROSPX4
   Mission --> State["/dri/mission/state 与 telemetry"]
+  RuntimeInfo --> RuntimeTopic["/dri/runtime/info"]
   Camera --> YOLO["rail_inspection_perception yolo_detector"]
   State --> YOLO
   YOLO --> Detections["/dri/detections"]
@@ -20,8 +23,10 @@ flowchart LR
   Alerts --> Report["rail_inspection_report"]
   Detections --> Report
   State --> Dashboard["FastAPI 中文 Dashboard"]
+  RuntimeTopic --> Dashboard
   YOLO --> Dashboard
   Report --> Dashboard
+  RuntimeTopic --> Report
   State --> RViz["RViz2"]
   YOLO --> RViz
 ```
@@ -32,6 +37,7 @@ flowchart LR
 
 - Gazebo/PX4 负责飞行和场景仿真。
 - `rail_inspection_control` 负责巡检流程和 offboard setpoint。
+- `runtime_info_publisher` 负责发布任务剖面、合成场景、模型资产和 ROS runtime 元数据。
 - `rail_inspection_perception` 负责图像输入、YOLO/fallback 检测、告警和 debug image。
 - `rail_inspection_report` 负责结构化报告，不依赖 Gazebo。
 - `rail_inspection_dashboard` 只消费 `/dri/*` 业务 topic 和报告文件，便于后续替换为真实数据源。
@@ -62,6 +68,7 @@ flowchart LR
 - `/dri/perception/debug_image` (`sensor_msgs/Image`)
 - `/dri/mission/path` (`nav_msgs/Path`)
 - `/dri/mission/markers` (`visualization_msgs/MarkerArray`)
+- `/dri/runtime/info` (`std_msgs/String` JSON)
 
 完整 PX4 仿真中还会出现：
 
@@ -116,6 +123,17 @@ python .\scripts\scenario_check.py
 ```
 
 这使离线验收、完整仿真、YOLO 数据集整理和 RL 场景随机化可以共享同一套缺陷定义。
+
+## 运行配置追溯
+
+`runtime_info_publisher` 会把本次运行的关键配置发布到 `/dri/runtime/info`：
+
+- 任务剖面：路径、文件名、配置名、航点数量。
+- 合成场景：路径、文件名、配置名、故障目标数量。
+- 模型资产：当前实际推理模式和模型优先级。
+- 运行环境：`ROS_DOMAIN_ID`、`RMW_IMPLEMENTATION`、Dashboard 端口、workspace。
+
+Dashboard 将该 JSON 合并进 `/api/status.runtime`，报告节点将其写入 `inspection_report.json` 并渲染到 Markdown/HTML 的“运行配置”章节。这样导出演示证据包时，可以追溯报告对应的航线、缺陷场景和模型资产状态。
 
 ## 感知与报告链路
 

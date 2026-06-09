@@ -68,6 +68,7 @@ def required_files() -> int:
         "data/datasets/rail_defects_yolo/labels/val/.gitkeep",
         "data/datasets/rail_defects_yolo/labels/test/.gitkeep",
         "ros2_ws/src/rail_inspection_rl/rail_inspection_rl/evaluate.py",
+        "ros2_ws/src/rail_inspection_control/rail_inspection_control/runtime_info_publisher.py",
         "ros2_ws/src/rail_inspection_gazebo/worlds/high_speed_rail_corridor.sdf",
         "ros2_ws/src/rail_inspection_bringup/launch/offline_demo.launch.py",
         "ros2_ws/src/rail_inspection_bringup/launch/full_sim.launch.py",
@@ -296,6 +297,9 @@ def scan_powershell_scripts() -> int:
     code = require_terms("scripts/export_evidence.ps1", ["inspection-evidence", "evidence_manifest.csv", "dashboard_status.json", "git_last_commit.txt"], "Evidence export")
     if code:
         return code
+    code = require_terms("scripts/export_evidence.ps1", ["runtime_info.json", "mission_profile", "synthetic_scenario", "model_assets"], "Evidence runtime export")
+    if code:
+        return code
     code = require_terms("scripts/verify_local.ps1", ["local-verify", "Static project validation", "YOLO dataset structure check", "YOLO model asset check", "RL policy smoke", "Evidence export smoke", "summary.json"], "Local verification")
     if code:
         return code
@@ -327,6 +331,18 @@ def scan_powershell_scripts() -> int:
     if code:
         return code
     code = require_terms("ros2_ws/src/rail_inspection_rl/rail_inspection_rl/evaluate.py", ["success_rate", "RulePolicyAdapter", "mean_total_reward"], "RL evaluation")
+    if code:
+        return code
+    code = require_terms("ros2_ws/src/rail_inspection_control/rail_inspection_control/runtime_info_publisher.py", ["/dri/runtime/info", "mission_profile", "synthetic_scenario", "model_assets"], "Runtime info publisher")
+    if code:
+        return code
+    code = require_terms("ros2_ws/src/rail_inspection_dashboard/rail_inspection_dashboard/web_dashboard.py", ["/dri/runtime/info", "runtime"], "Dashboard runtime info")
+    if code:
+        return code
+    code = require_terms("ros2_ws/src/rail_inspection_report/rail_inspection_report/report_templates.py", ["运行配置", "任务剖面", "模型模式", "runtime_lines"], "Report runtime section")
+    if code:
+        return code
+    code = require_terms("scripts/report_smoke.py", ["运行配置", "模型模式", "default_synthetic_faults"], "Report smoke runtime section")
     if code:
         return code
     code = require_terms("data/datasets/rail_defects_yolo/data.yaml", ["person_on_track", "fastener_broken", "catenary_or_pole_abnormal"], "YOLO data.yaml")

@@ -69,7 +69,21 @@ def enrich_payload(payload: Dict) -> Dict:
     summary = dict(payload.get("summary", {}))
     summary["mission_phase_label"] = label_phase(summary.get("mission_phase", "UNKNOWN"))
     enriched_alerts = [enrich_alert(alert) for alert in payload.get("alerts", [])]
-    return {"summary": summary, "alerts": enriched_alerts}
+    return {"summary": summary, "alerts": enriched_alerts, "runtime": dict(payload.get("runtime", {}))}
+
+
+def runtime_lines(runtime: Dict) -> list[str]:
+    mission = runtime.get("mission_profile", {}) if isinstance(runtime, dict) else {}
+    scenario = runtime.get("synthetic_scenario", {}) if isinstance(runtime, dict) else {}
+    model_assets = runtime.get("model_assets", {}) if isinstance(runtime, dict) else {}
+    selected_model = model_assets.get("selected", {}) if isinstance(model_assets, dict) else {}
+    return [
+        f"- 运行模式：{runtime.get('mode', '--') if isinstance(runtime, dict) else '--'}",
+        f"- 任务剖面：{mission.get('config_name') or mission.get('name') or '--'}（{mission.get('path', '')}）",
+        f"- 合成场景：{scenario.get('config_name') or scenario.get('name') or '--'}（{scenario.get('path', '')}）",
+        f"- 模型模式：{selected_model.get('mode', '--')} / {selected_model.get('role', '--')}",
+        f"- ROS_DOMAIN_ID：{runtime.get('ros_domain_id', '--') if isinstance(runtime, dict) else '--'}",
+    ]
 
 
 def render_markdown(payload: Dict) -> str:
@@ -89,6 +103,10 @@ def render_markdown(payload: Dict) -> str:
         f"- 告警数量：{summary.get('alerts_count')}",
         f"- 最新位置：x={latest_position.get('x')}, y={latest_position.get('y')}, z={latest_position.get('z')}",
         f"- 电量：{summary.get('battery_percentage')}",
+        "",
+        "## 运行配置",
+        "",
+        *runtime_lines(payload.get("runtime", {})),
         "",
         "## 告警明细",
         "",
@@ -118,6 +136,10 @@ def render_markdown(payload: Dict) -> str:
 def render_html(payload: Dict) -> str:
     payload = enrich_payload(payload)
     summary = payload["summary"]
+    runtime = payload.get("runtime", {})
+    runtime_items = "".join(
+        f"<li>{html.escape(line[2:])}</li>" for line in runtime_lines(runtime)
+    )
     rows = []
     for index, alert in enumerate(payload["alerts"], start=1):
         evidence = alert.get("evidence_path", "")
@@ -167,6 +189,10 @@ def render_html(payload: Dict) -> str:
     <div class="metric"><strong>告警数量</strong>{summary.get('alerts_count')}</div>
     <div class="metric"><strong>最新位置</strong>x={latest.get('x')}, y={latest.get('y')}, z={latest.get('z')}</div>
     <div class="metric"><strong>电量</strong>{summary.get('battery_percentage')}</div>
+  </section>
+  <section>
+    <h2>运行配置</h2>
+    <ul>{runtime_items}</ul>
   </section>
   <table>
     <thead><tr><th>#</th><th>时间</th><th>故障类别</th><th>级别</th><th>置信度</th><th>位置</th><th>阶段</th><th>证据</th></tr></thead>
