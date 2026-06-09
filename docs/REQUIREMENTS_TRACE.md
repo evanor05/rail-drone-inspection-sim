@@ -32,8 +32,8 @@
 
 | 目标 | 当前实现 | 下一步 |
 | --- | --- | --- |
-| Gymnasium 环境封装 | `rail_inspection_rl/env.py::RailInspectionEnv` 预留 observation/action/reward skeleton | 接入真实 ROS/Gazebo adapter，支持批量 episode |
-| 策略替换接口 | `RulePolicyAdapter` 和 `/dri/offboard/setpoint` policy boundary | 抽象 mission manager，使规则策略、启发式策略和 RL policy 可切换 |
+| Gymnasium 环境封装 | `rail_inspection_rl/env.py::RailInspectionEnv` 预留 observation/action/reward skeleton，并提供 `scripts/rl_smoke.py` 验证入口 | 接入真实 ROS/Gazebo adapter，支持批量 episode |
+| 策略替换接口 | `RulePolicyAdapter`、`rl_policy_eval` 和 `/dri/offboard/setpoint` policy boundary | 抽象 mission manager，使规则策略、启发式策略和 RL policy 可切换 |
 | 目标靠近、避障、路径规划、效率优化 | 当前状态机已具备异常复查流程，RL 包预留任务配置 | 增加障碍物传感器、覆盖率指标、能耗指标、定位误差指标 |
 | 不要求第一阶段训练结果 | 当前仓库不包含训练产物，不把 RL 训练作为第一阶段验收条件 | 后续补训练脚本、评估脚本、实验报告和模型注册目录 |
 
@@ -63,7 +63,15 @@ python .\scripts\static_check.py
 python .\scripts\report_smoke.py
 ```
 
-3. Docker/脚本预检：
+3. RL 接口 smoke：
+
+```powershell
+python .\scripts\rl_smoke.py
+```
+
+宿主机没有 Gymnasium/Numpy 时该命令会返回 SKIP；在 Docker/ROS 环境内可用 `ros2 run rail_inspection_rl rl_policy_eval --episodes 3 --max-steps 360` 运行真实基线评估。
+
+4. Docker/脚本预检：
 
 ```powershell
 .\scripts\preflight.ps1
@@ -75,14 +83,14 @@ python .\scripts\report_smoke.py
 .\scripts\preflight.ps1 -SkipDockerCompose
 ```
 
-4. 离线工程演示验收：
+5. 离线工程演示验收：
 
 ```powershell
 .\scripts\start_offline_demo.ps1
 .\scripts\acceptance_offline.ps1 -Seconds 35
 ```
 
-5. 完整 PX4/Gazebo 验收：
+6. 完整 PX4/Gazebo 验收：
 
 ```powershell
 docker rm -f drone-rail-inspection

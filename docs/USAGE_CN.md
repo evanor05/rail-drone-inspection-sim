@@ -21,6 +21,19 @@
 
 默认演示使用 synthetic camera + fallback detector，保证没有真实 YOLO 权重时也能稳定跑通。
 
+RL 扩展接口可以先用轻量 smoke 验证：
+
+```powershell
+cd E:\DroneRailInspection
+python .\scripts\rl_smoke.py
+```
+
+宿主机没有 Gymnasium/Numpy 时该命令会返回 SKIP；在 Docker/ROS 环境内可以运行真实基线评估：
+
+```bash
+ros2 run rail_inspection_rl rl_policy_eval --episodes 3 --max-steps 360
+```
+
 ## 1. 停止当前运行的系统
 
 如果之前启动过 demo 或 full sim，先停止容器：

@@ -503,6 +503,20 @@ RViz2 配置用于查看：
 
 第一阶段不要求高质量 RL 训练结果，但目录和接口已经按后续研究训练框架预留。
 
+当前可运行的基线评估 smoke：
+
+```powershell
+python .\scripts\rl_smoke.py
+```
+
+如果在 Docker/ROS 环境内：
+
+```bash
+ros2 run rail_inspection_rl rl_policy_eval --episodes 3 --max-steps 360
+```
+
+该评估会运行 `RulePolicyAdapter`，输出成功率、平均奖励、最终巡检进度和每回合结果。它只验证第二阶段接口可执行，不代表正式强化学习训练效果。
+
 ## 后续发展方向
 
 项目后续建议按“先工程可用，再算法增强，再真实迁移”的顺序推进。

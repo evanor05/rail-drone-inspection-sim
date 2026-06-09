@@ -19,6 +19,7 @@ setup(
     entry_points={
         "console_scripts": [
             "rl_env_smoke = rail_inspection_rl.env:main",
+            "rl_policy_eval = rail_inspection_rl.evaluate:main",
         ],
     },
 )
