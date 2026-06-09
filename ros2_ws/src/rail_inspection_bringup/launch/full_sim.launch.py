@@ -19,6 +19,7 @@ def generate_launch_description():
     synthetic_camera = LaunchConfiguration("synthetic_camera")
     px4_home = LaunchConfiguration("px4_home")
     px4_model = LaunchConfiguration("px4_model")
+    mission_profile_path = LaunchConfiguration("mission_profile_path")
 
     gazebo_share = get_package_share_directory("rail_inspection_gazebo")
     default_world = os.path.join(gazebo_share, "worlds", "high_speed_rail_corridor.sdf")
@@ -64,6 +65,7 @@ def generate_launch_description():
             DeclareLaunchArgument("synthetic_camera", default_value="true"),
             DeclareLaunchArgument("px4_home", default_value="/opt/PX4-Autopilot"),
             DeclareLaunchArgument("px4_model", default_value="gz_x500_depth"),
+            DeclareLaunchArgument("mission_profile_path", default_value="/workspace/data/missions/default_corridor_profile.json"),
             gz_launch,
             TimerAction(period=2.0, actions=[xrce_agent]),
             TimerAction(period=4.0, actions=[px4_process]),
@@ -99,7 +101,13 @@ def generate_launch_description():
                         package="rail_inspection_control",
                         executable="mission_manager",
                         output="screen",
-                        parameters=[{"use_px4_offboard": use_px4_offboard, "simulate_state": simulate_state}],
+                        parameters=[
+                            {
+                                "use_px4_offboard": use_px4_offboard,
+                                "simulate_state": simulate_state,
+                                "mission_profile_path": mission_profile_path,
+                            }
+                        ],
                     ),
                     Node(
                         package="rail_inspection_perception",

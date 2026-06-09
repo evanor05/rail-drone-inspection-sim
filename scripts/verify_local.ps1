@@ -58,17 +58,18 @@ Write-Host ""
 $results = @()
 $results += Invoke-Step "Static project validation" "01_static_check.log" { python .\scripts\static_check.py }
 $reportSmokeRoot = Join-Path $LogDir "report_smoke_data"
-$results += Invoke-Step "Chinese report smoke" "02_report_smoke.log" { python .\scripts\report_smoke.py --output-root $reportSmokeRoot }
-$results += Invoke-Step "YOLO dataset structure check" "03_dataset_check.log" { python .\scripts\dataset_check.py }
+$results += Invoke-Step "Mission profile check" "02_mission_profile_check.log" { python .\scripts\mission_profile_check.py }
+$results += Invoke-Step "Chinese report smoke" "03_report_smoke.log" { python .\scripts\report_smoke.py --output-root $reportSmokeRoot }
+$results += Invoke-Step "YOLO dataset structure check" "04_dataset_check.log" { python .\scripts\dataset_check.py }
 $modelCheckOutput = Join-Path $LogDir "model_check.json"
-$results += Invoke-Step "YOLO model asset check" "04_model_check.log" { python .\scripts\model_check.py --output $modelCheckOutput }
+$results += Invoke-Step "YOLO model asset check" "05_model_check.log" { python .\scripts\model_check.py --output $modelCheckOutput }
 $rlSmokeOutput = Join-Path $LogDir "rl_policy_eval_smoke.json"
-$results += Invoke-Step "RL policy smoke" "05_rl_smoke.log" { python .\scripts\rl_smoke.py --output $rlSmokeOutput }
+$results += Invoke-Step "RL policy smoke" "06_rl_smoke.log" { python .\scripts\rl_smoke.py --output $rlSmokeOutput }
 
 if ($WithDockerCompose) {
-    $results += Invoke-Step "Docker Compose config" "06_docker_compose_config.log" { docker compose config --quiet }
+    $results += Invoke-Step "Docker Compose config" "07_docker_compose_config.log" { docker compose config --quiet }
 } else {
-    $skipLog = Join-Path $LogDir "06_docker_compose_config.log"
+    $skipLog = Join-Path $LogDir "07_docker_compose_config.log"
     Set-Content -LiteralPath $skipLog -Value "Skipped. Run with -WithDockerCompose to enable this check." -Encoding UTF8
     $results += [PSCustomObject]@{
         name = "Docker Compose config"
@@ -79,7 +80,7 @@ if ($WithDockerCompose) {
     Write-Host "[SKIP] Run with -WithDockerCompose to enable this check."
 }
 
-$results += Invoke-Step "PowerShell script parse" "07_powershell_parse.log" {
+$results += Invoke-Step "PowerShell script parse" "08_powershell_parse.log" {
     $files = Get-ChildItem .\scripts -Filter *.ps1
     foreach ($file in $files) {
         $tokens = $null
@@ -91,7 +92,7 @@ $results += Invoke-Step "PowerShell script parse" "07_powershell_parse.log" {
     }
 }
 
-$results += Invoke-Step "Evidence export smoke" "08_export_evidence.log" {
+$results += Invoke-Step "Evidence export smoke" "09_export_evidence.log" {
     $exportSmokeRoot = Join-Path $LogDir "evidence_export_smoke"
     .\scripts\export_evidence.ps1 -DashboardPort $DashboardPort -ExportRoot $exportSmokeRoot -SkipEvidenceFiles
 }

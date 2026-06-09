@@ -106,6 +106,30 @@ cd E:\DroneRailInspection
 .\scripts\start_offline_demo.ps1
 ```
 
+默认巡检任务剖面位于：
+
+```text
+data\missions\default_corridor_profile.json
+```
+
+它定义了起飞点、进入高铁线路走廊、沿轨巡检航点、返航降落和异常复查参数。需要切换任务时，可以复制这份 JSON 后启动：
+
+```powershell
+.\scripts\start_offline_demo.ps1 -MissionProfile data\missions\default_corridor_profile.json
+```
+
+完整仿真同样支持：
+
+```powershell
+.\scripts\start_full_sim.ps1 -NoRviz -MissionProfile data\missions\default_corridor_profile.json
+```
+
+任务配置校验：
+
+```powershell
+python .\scripts\mission_profile_check.py
+```
+
 浏览器打开：
 
 ```text
@@ -533,6 +557,7 @@ ultralytics is unavailable; using synthetic fallback detector.
 ```powershell
 .\scripts\verify_local.ps1
 python .\scripts\static_check.py
+python .\scripts\mission_profile_check.py
 docker compose config --quiet
 ```
 
@@ -572,6 +597,7 @@ cd E:\DroneRailInspection
 ```
 
 它会运行静态检查、中文报告 smoke、PowerShell 脚本解析和证据导出 smoke，并把日志写到：
+当前版本还会检查任务剖面、YOLO 数据集结构、YOLO 模型资产和 RL policy smoke；因此它适合在上传 GitHub 或演示前做一次完整本地回归。
 
 ```text
 E:\DroneRailInspection\data\exports\local-verify-<timestamp>

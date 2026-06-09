@@ -1,8 +1,11 @@
+import json
 import math
+import os
 import time
 import uuid
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from pathlib import Path
+from typing import Any, List, Optional, Tuple
 
 import rclpy
 from ddrone_msgs.msg import Alert, DroneTelemetry, MissionState
@@ -42,6 +45,16 @@ class Waypoint:
     phase: str
 
 
+@dataclass(frozen=True)
+class ReinspectionConfig:
+    offset_x: float = -5.0
+    offset_y: float = -3.0
+    offset_z: float = 4.0
+    min_altitude_m: float = 5.0
+    max_altitude_m: float = 9.0
+    pause_seconds: float = 7.0
+
+
 def _yaw_to_quaternion(yaw: float) -> Quaternion:
     q = Quaternion()
     q.z = math.sin(yaw * 0.5)
@@ -61,6 +74,103 @@ def _as_bool(value) -> bool:
     return bool(value)
 
 
+def _finite_float(value: Any, label: str) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a number")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{label} must be finite")
+    return number
+
+
+def _read_object(value: Any, label: str) -> dict:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be an object")
+    return value
+
+
+def _resolve_profile_path(raw_path: str) -> Optional[Path]:
+    path_value = raw_path.strip() or os.environ.get("DRI_MISSION_PROFILE_PATH", "").strip()
+    if not path_value:
+        return None
+    path = Path(path_value).expanduser()
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    return path
+
+
+def _load_mission_profile(path: Path) -> Tuple[List[Waypoint], Tuple[float, float, float], ReinspectionConfig]:
+    with path.open("r", encoding="utf-8-sig") as handle:
+        profile = json.load(handle)
+    root = _read_object(profile, "mission profile")
+    if int(root.get("schema_version", 0)) != 1:
+        raise ValueError("schema_version must be 1")
+    if root.get("coordinate_frame", "map") != "map":
+        raise ValueError("coordinate_frame must be map")
+
+    route = _read_object(root.get("route"), "route")
+    home = _read_object(route.get("home"), "route.home")
+    home_pose = (
+        _finite_float(home.get("x", 0.0), "route.home.x"),
+        _finite_float(home.get("y", -22.0), "route.home.y"),
+        _finite_float(home.get("z", 0.2), "route.home.z"),
+    )
+
+    reinspection = _read_object(root.get("reinspection", {}), "reinspection")
+    offset = _read_object(reinspection.get("approach_offset_m", {}), "reinspection.approach_offset_m")
+    reinspection_config = ReinspectionConfig(
+        offset_x=_finite_float(offset.get("x", -5.0), "reinspection.approach_offset_m.x"),
+        offset_y=_finite_float(offset.get("y", -3.0), "reinspection.approach_offset_m.y"),
+        offset_z=_finite_float(offset.get("z", 4.0), "reinspection.approach_offset_m.z"),
+        min_altitude_m=_finite_float(reinspection.get("min_altitude_m", 5.0), "reinspection.min_altitude_m"),
+        max_altitude_m=_finite_float(reinspection.get("max_altitude_m", 9.0), "reinspection.max_altitude_m"),
+        pause_seconds=_finite_float(reinspection.get("pause_seconds", 7.0), "reinspection.pause_seconds"),
+    )
+    if reinspection_config.max_altitude_m <= reinspection_config.min_altitude_m:
+        raise ValueError("reinspection altitude bounds are invalid")
+    if reinspection_config.pause_seconds <= 0.0:
+        raise ValueError("reinspection pause_seconds must be positive")
+
+    raw_waypoints = root.get("waypoints")
+    if not isinstance(raw_waypoints, list) or len(raw_waypoints) < 3:
+        raise ValueError("waypoints must contain at least three entries")
+
+    waypoints: List[Waypoint] = []
+    names = set()
+    for index, item in enumerate(raw_waypoints):
+        wp = _read_object(item, f"waypoints[{index}]")
+        name = str(wp.get("name", "")).strip()
+        phase = str(wp.get("phase", "")).strip().upper()
+        if not name:
+            raise ValueError(f"waypoints[{index}].name is empty")
+        if name in names:
+            raise ValueError(f"duplicate waypoint name: {name}")
+        names.add(name)
+        if phase not in {"TAKEOFF", "ENTER_CORRIDOR", "INSPECT", "REINSPECT", "RETURN", "LAND"}:
+            raise ValueError(f"waypoints[{index}].phase {phase!r} is invalid")
+        speed = _finite_float(wp.get("speed"), f"waypoints[{index}].speed")
+        if speed <= 0.0 or speed > 15.0:
+            raise ValueError(f"waypoints[{index}].speed must be in (0, 15] m/s")
+        waypoint = Waypoint(
+            name=name,
+            phase=phase,
+            x=_finite_float(wp.get("x"), f"waypoints[{index}].x"),
+            y=_finite_float(wp.get("y"), f"waypoints[{index}].y"),
+            z=_finite_float(wp.get("z"), f"waypoints[{index}].z"),
+            speed=speed,
+        )
+        if waypoint.z < 0.0:
+            raise ValueError(f"waypoints[{index}].z must be non-negative")
+        waypoints.append(waypoint)
+
+    phases = [wp.phase for wp in waypoints]
+    if phases[0] != "TAKEOFF" or phases[-1] != "LAND":
+        raise ValueError("mission must start with TAKEOFF and end with LAND")
+    if "ENTER_CORRIDOR" not in phases or "INSPECT" not in phases or "RETURN" not in phases:
+        raise ValueError("mission must include ENTER_CORRIDOR, INSPECT and RETURN phases")
+    return waypoints, home_pose, reinspection_config
+
+
 class MissionManager(Node):
     """Rule-based first-stage inspection policy with optional PX4 offboard output."""
 
@@ -74,7 +184,8 @@ class MissionManager(Node):
         self.declare_parameter("cruise_altitude_m", 9.0)
         self.declare_parameter("corridor_y", 0.0)
         self.declare_parameter("track_length_m", 260.0)
-        self.declare_parameter("alert_pause_seconds", 7.0)
+        self.declare_parameter("alert_pause_seconds", -1.0)
+        self.declare_parameter("mission_profile_path", "")
 
         self.use_px4_offboard = _as_bool(self.get_parameter("use_px4_offboard").value)
         self.simulate_state = _as_bool(self.get_parameter("simulate_state").value)
@@ -84,19 +195,35 @@ class MissionManager(Node):
         corridor_y = float(self.get_parameter("corridor_y").value)
         track_length = float(self.get_parameter("track_length_m").value)
 
-        self.waypoints: List[Waypoint] = [
-            Waypoint("takeoff", home_x, home_y, cruise_alt, 2.0, "TAKEOFF"),
-            Waypoint("enter_corridor", 20.0, corridor_y, cruise_alt, 3.0, "ENTER_CORRIDOR"),
-            Waypoint("inspect_kp_000_060", 60.0, corridor_y, cruise_alt, 4.0, "INSPECT"),
-            Waypoint("inspect_kp_000_120", 120.0, corridor_y, cruise_alt, 4.0, "INSPECT"),
-            Waypoint("inspect_kp_000_180", 180.0, corridor_y, cruise_alt, 4.0, "INSPECT"),
-            Waypoint("inspect_kp_000_240", track_length - 20.0, corridor_y + 4.0, cruise_alt, 4.0, "INSPECT"),
-            Waypoint("turn_back", track_length - 10.0, -12.0, cruise_alt, 3.0, "RETURN"),
-            Waypoint("home_approach", home_x + 10.0, home_y, cruise_alt, 3.0, "RETURN"),
-            Waypoint("land", home_x, home_y, 0.4, 1.0, "LAND"),
-        ]
+        self.reinspection_config = ReinspectionConfig()
+        mission_profile_path = _resolve_profile_path(str(self.get_parameter("mission_profile_path").value or ""))
+        loaded_home = (home_x, home_y, 0.2)
+        if mission_profile_path is not None:
+            try:
+                self.waypoints, loaded_home, self.reinspection_config = _load_mission_profile(mission_profile_path)
+                self.get_logger().info(
+                    f"Loaded mission profile {mission_profile_path} with {len(self.waypoints)} waypoints."
+                )
+            except Exception as exc:
+                self.get_logger().warn(
+                    f"Failed to load mission profile {mission_profile_path}: {exc}; using generated defaults."
+                )
+                self.waypoints = self._default_waypoints(home_x, home_y, cruise_alt, corridor_y, track_length)
+        else:
+            self.waypoints = self._default_waypoints(home_x, home_y, cruise_alt, corridor_y, track_length)
 
-        self.current_position = [home_x, home_y, 0.2]
+        pause_override = float(self.get_parameter("alert_pause_seconds").value)
+        if pause_override >= 0.0:
+            self.reinspection_config = ReinspectionConfig(
+                offset_x=self.reinspection_config.offset_x,
+                offset_y=self.reinspection_config.offset_y,
+                offset_z=self.reinspection_config.offset_z,
+                min_altitude_m=self.reinspection_config.min_altitude_m,
+                max_altitude_m=self.reinspection_config.max_altitude_m,
+                pause_seconds=pause_override,
+            )
+
+        self.current_position = [loaded_home[0], loaded_home[1], loaded_home[2]]
         self.current_velocity = [0.0, 0.0, 0.0]
         self.current_wp_index = 0
         self.phase = "INIT"
@@ -141,6 +268,21 @@ class MissionManager(Node):
         self.timer = self.create_timer(0.1, self._tick)
         self._publish_static_markers()
 
+    def _default_waypoints(
+        self, home_x: float, home_y: float, cruise_alt: float, corridor_y: float, track_length: float
+    ) -> List[Waypoint]:
+        return [
+            Waypoint("takeoff", home_x, home_y, cruise_alt, 2.0, "TAKEOFF"),
+            Waypoint("enter_corridor", 20.0, corridor_y, cruise_alt, 3.0, "ENTER_CORRIDOR"),
+            Waypoint("inspect_kp_000_060", 60.0, corridor_y, cruise_alt, 4.0, "INSPECT"),
+            Waypoint("inspect_kp_000_120", 120.0, corridor_y, cruise_alt, 4.0, "INSPECT"),
+            Waypoint("inspect_kp_000_180", 180.0, corridor_y, cruise_alt, 4.0, "INSPECT"),
+            Waypoint("inspect_kp_000_240", track_length - 20.0, corridor_y + 4.0, cruise_alt, 4.0, "INSPECT"),
+            Waypoint("turn_back", track_length - 10.0, -12.0, cruise_alt, 3.0, "RETURN"),
+            Waypoint("home_approach", home_x + 10.0, home_y, cruise_alt, 3.0, "RETURN"),
+            Waypoint("land", home_x, home_y, 0.4, 1.0, "LAND"),
+        ]
+
     def _header(self, frame_id: str = "map") -> Header:
         header = Header()
         header.stamp = self.get_clock().now().to_msg()
@@ -152,7 +294,7 @@ class MissionManager(Node):
             return
         self.alert_history.append(msg.alert_id)
         self.active_alert = msg
-        self.reinspection_until = time.monotonic() + float(self.get_parameter("alert_pause_seconds").value)
+        self.reinspection_until = time.monotonic() + self.reinspection_config.pause_seconds
         self.phase = "REINSPECT"
         event = String()
         event.data = f"reinspection_started:{msg.alert_id}:{msg.defect_class}:{msg.confidence:.2f}"
@@ -201,9 +343,12 @@ class MissionManager(Node):
         self._publish_path()
 
     def _reinspection_target(self, alert: Alert) -> Tuple[float, float, float, str]:
-        x = alert.pose.position.x - 5.0
-        y = alert.pose.position.y - 3.0
-        z = max(5.0, min(9.0, alert.pose.position.z + 4.0))
+        x = alert.pose.position.x + self.reinspection_config.offset_x
+        y = alert.pose.position.y + self.reinspection_config.offset_y
+        z = max(
+            self.reinspection_config.min_altitude_m,
+            min(self.reinspection_config.max_altitude_m, alert.pose.position.z + self.reinspection_config.offset_z),
+        )
         return (x, y, z, "REINSPECT")
 
     def _advance_simulated_state(self, target: Tuple[float, float, float, str], dt: float, speed_scale: float) -> None:
@@ -344,7 +489,10 @@ class MissionManager(Node):
         msg.header = self._header()
         msg.phase = self.phase
         msg.progress = float(self.current_wp_index) / float(max(1, len(self.waypoints) - 1))
-        msg.active_target = self.waypoints[self.current_wp_index].name
+        if self.active_alert is not None:
+            msg.active_target = f"reinspect_{self.active_alert.defect_class}"
+        else:
+            msg.active_target = self.waypoints[self.current_wp_index].name
         msg.paused_for_reinspection = self.active_alert is not None
         msg.waypoint_index = self.current_wp_index
         msg.total_waypoints = len(self.waypoints)

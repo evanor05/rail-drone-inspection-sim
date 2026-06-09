@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "name": "default_high_speed_rail_corridor",
+  "coordinate_frame": "map",
+  "description": "Default engineering demo mission for a high-speed rail corridor inspection.",
+  "route": {
+    "line_name": "HSR demo corridor",
+    "start_kp_m": 0.0,
+    "end_kp_m": 260.0,
+    "corridor_y_m": 0.0,
+    "home": {
+      "x": 0.0,
+      "y": -22.0,
+      "z": 0.2
+    }
+  },
+  "reinspection": {
+    "approach_offset_m": {
+      "x": -5.0,
+      "y": -3.0,
+      "z": 4.0
+    },
+    "min_altitude_m": 5.0,
+    "max_altitude_m": 9.0,
+    "pause_seconds": 7.0
+  },
+  "waypoints": [
+    {
+      "name": "takeoff_staging_pad",
+      "phase": "TAKEOFF",
+      "x": 0.0,
+      "y": -22.0,
+      "z": 9.0,
+      "speed": 2.0
+    },
+    {
+      "name": "enter_left_side_corridor",
+      "phase": "ENTER_CORRIDOR",
+      "x": 20.0,
+      "y": 0.0,
+      "z": 9.0,
+      "speed": 3.0
+    },
+    {
+      "name": "inspect_kp_000_060",
+      "phase": "INSPECT",
+      "x": 60.0,
+      "y": 0.0,
+      "z": 9.0,
+      "speed": 4.0
+    },
+    {
+      "name": "inspect_kp_000_120",
+      "phase": "INSPECT",
+      "x": 120.0,
+      "y": 0.0,
+      "z": 9.0,
+      "speed": 4.0
+    },
+    {
+      "name": "inspect_kp_000_180",
+      "phase": "INSPECT",
+      "x": 180.0,
+      "y": 0.0,
+      "z": 9.0,
+      "speed": 4.0
+    },
+    {
+      "name": "inspect_kp_000_240_curve_entry",
+      "phase": "INSPECT",
+      "x": 240.0,
+      "y": 4.0,
+      "z": 9.0,
+      "speed": 3.5
+    },
+    {
+      "name": "return_turn_back",
+      "phase": "RETURN",
+      "x": 250.0,
+      "y": -12.0,
+      "z": 9.0,
+      "speed": 3.0
+    },
+    {
+      "name": "home_approach",
+      "phase": "RETURN",
+      "x": 10.0,
+      "y": -22.0,
+      "z": 9.0,
+      "speed": 3.0
+    },
+    {
+      "name": "land_staging_pad",
+      "phase": "LAND",
+      "x": 0.0,
+      "y": -22.0,
+      "z": 0.4,
+      "speed": 1.0
+    }
+  ]
+}

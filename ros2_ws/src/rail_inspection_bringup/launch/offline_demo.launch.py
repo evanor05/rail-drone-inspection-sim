@@ -8,17 +8,25 @@ def generate_launch_description():
     dashboard_port = LaunchConfiguration("dashboard_port")
     model_path = LaunchConfiguration("model_path")
     use_px4_offboard = LaunchConfiguration("use_px4_offboard")
+    mission_profile_path = LaunchConfiguration("mission_profile_path")
 
     return LaunchDescription(
         [
             DeclareLaunchArgument("dashboard_port", default_value="8080"),
             DeclareLaunchArgument("model_path", default_value="/workspace/data/models/rail_defects.pt"),
             DeclareLaunchArgument("use_px4_offboard", default_value="false"),
+            DeclareLaunchArgument("mission_profile_path", default_value="/workspace/data/missions/default_corridor_profile.json"),
             Node(
                 package="rail_inspection_control",
                 executable="mission_manager",
                 output="screen",
-                parameters=[{"use_px4_offboard": use_px4_offboard, "simulate_state": True}],
+                parameters=[
+                    {
+                        "use_px4_offboard": use_px4_offboard,
+                        "simulate_state": True,
+                        "mission_profile_path": mission_profile_path,
+                    }
+                ],
             ),
             Node(
                 package="rail_inspection_perception",

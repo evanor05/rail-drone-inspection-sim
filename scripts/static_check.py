@@ -57,6 +57,7 @@ def required_files() -> int:
         "docs/DEMO_SCRIPT_CN.md",
         "docs/ARCHITECTURE.md",
         "docs/REQUIREMENTS_TRACE.md",
+        "data/missions/default_corridor_profile.json",
         "data/datasets/rail_defects_yolo/data.yaml",
         "data/datasets/rail_defects_yolo/README.md",
         "data/datasets/rail_defects_yolo/images/train/.gitkeep",
@@ -84,6 +85,7 @@ def required_files() -> int:
         "scripts/rl_smoke.py",
         "scripts/dataset_check.py",
         "scripts/model_check.py",
+        "scripts/mission_profile_check.py",
         "data/exports/.gitkeep",
     ]
     missing = [file for file in files if not (ROOT / file).exists()]
@@ -160,6 +162,38 @@ def scan_docs() -> int:
         if code:
             return code
     print("[PASS] Documentation coverage")
+    return 0
+
+
+def scan_mission_profile() -> int:
+    try:
+        import importlib.util
+
+        module_path = ROOT / "scripts" / "mission_profile_check.py"
+        spec = importlib.util.spec_from_file_location("mission_profile_check", module_path)
+        if spec is None or spec.loader is None:
+            return fail("Unable to load mission_profile_check.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        profile = module.load_profile(ROOT / "data" / "missions" / "default_corridor_profile.json")
+        module.validate_profile(profile)
+    except Exception as exc:
+        return fail(f"Mission profile coverage failed: {exc}")
+    code = require_terms(
+        "data/missions/default_corridor_profile.json",
+        ["default_high_speed_rail_corridor", "reinspection", "inspect_kp_000_120", "land_staging_pad"],
+        "Mission profile",
+    )
+    if code:
+        return code
+    code = require_terms(
+        "ros2_ws/src/rail_inspection_control/rail_inspection_control/mission_manager.py",
+        ["mission_profile_path", "ReinspectionConfig", "_load_mission_profile"],
+        "Mission manager profile support",
+    )
+    if code:
+        return code
+    print("[PASS] Mission profile coverage")
     return 0
 
 
@@ -243,6 +277,15 @@ def scan_powershell_scripts() -> int:
     code = require_terms("scripts/model_check.py", ["--require-rail-model", "synthetic_fallback", "rail_defects.pt"], "Model check")
     if code:
         return code
+    code = require_terms("scripts/mission_profile_check.py", ["default_corridor_profile.json", "TAKEOFF", "ENTER_CORRIDOR", "LAND"], "Mission profile check")
+    if code:
+        return code
+    code = require_terms("scripts/start_offline_demo.ps1", ["MissionProfile", "mission_profile_path"], "Offline mission profile launch")
+    if code:
+        return code
+    code = require_terms("scripts/start_full_sim.ps1", ["MissionProfile", "mission_profile_path"], "Full mission profile launch")
+    if code:
+        return code
     code = require_terms("ros2_ws/src/rail_inspection_rl/rail_inspection_rl/evaluate.py", ["success_rate", "RulePolicyAdapter", "mean_total_reward"], "RL evaluation")
     if code:
         return code
@@ -273,6 +316,7 @@ def main() -> int:
         scan_world_features,
         scan_dashboard_localization,
         scan_docs,
+        scan_mission_profile,
         scan_github_metadata,
         scan_gitignore,
         scan_powershell_scripts,

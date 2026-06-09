@@ -19,6 +19,10 @@ Step "Static project check" {
     python .\scripts\static_check.py
 }
 
+Step "Mission profile check" {
+    python .\scripts\mission_profile_check.py
+}
+
 if (-not $SkipDockerCompose) {
     Step "Docker Compose config" {
         docker compose config --quiet

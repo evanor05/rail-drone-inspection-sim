@@ -83,6 +83,7 @@ E:\DroneRailInspection
   docker/
   scripts/
   data/
+    missions/       # 巡检任务剖面 JSON，定义线路、航点、速度和复查参数
     models/        # 放置 rail_defects.pt 或 yolov8n.pt
     evidence/      # 检测截图和图像证据
     reports/       # JSON / Markdown / HTML 巡检报告
@@ -261,6 +262,20 @@ cd E:\DroneRailInspection
 .\scripts\start_offline_demo.ps1
 ```
 
+默认会加载：
+
+```text
+data/missions/default_corridor_profile.json
+```
+
+这份任务剖面定义了起飞点、进入线路走廊、沿轨巡检航点、弯道入口、返航、降落以及异常复查偏移。需要演示不同线路区间或不同速度/高度时，可以复制该 JSON 后指定新配置：
+
+```powershell
+.\scripts\start_offline_demo.ps1 -MissionProfile data\missions\default_corridor_profile.json
+```
+
+启动脚本会把项目内相对路径自动映射成容器内 `/workspace/...` 路径。
+
 浏览器打开：
 
 ```text
@@ -287,6 +302,12 @@ ros2 topic echo --once /dri/mission/state
 ros2 topic echo --once /dri/drone/telemetry
 ros2 topic echo --once /dri/detections
 ros2 topic echo --once /dri/alerts
+```
+
+任务剖面静态校验：
+
+```powershell
+python .\scripts\mission_profile_check.py
 ```
 
 报告输出：
@@ -551,6 +572,30 @@ ros2 run rail_inspection_rl rl_policy_eval --episodes 3 --max-steps 360
 
 该评估会运行 `RulePolicyAdapter`，输出成功率、平均奖励、最终巡检进度和每回合结果。它只验证第二阶段接口可执行，不代表正式强化学习训练效果。
 
+## 巡检任务剖面
+
+当前规则任务已经从代码硬编码航线升级为 JSON 任务剖面。默认文件是 `data/missions/default_corridor_profile.json`，核心字段包括：
+
+- `route`：线路名称、起止里程、线路走廊偏移、home 点。
+- `waypoints`：航点名称、任务阶段、`x/y/z` 坐标和速度。
+- `reinspection`：告警后靠近复查的偏移、高度上下限和悬停/慢速复查时间。
+
+离线演示和完整 PX4/Gazebo 仿真都会默认读取这份配置：
+
+```powershell
+.\scripts\start_offline_demo.ps1 -MissionProfile data\missions\default_corridor_profile.json
+.\scripts\start_full_sim.ps1 -NoRviz -MissionProfile data\missions\default_corridor_profile.json
+```
+
+如果配置文件不可读或字段非法，`mission_manager` 会记录 warning 并回退到内置默认航线，避免演示直接中断；提交前应通过：
+
+```powershell
+python .\scripts\mission_profile_check.py
+.\scripts\preflight.ps1 -SkipDockerCompose
+```
+
+这个能力用于后续扩展多线路、多缺陷分布、多速度策略和 RL episode 场景随机化。
+
 ## 后续发展方向
 
 项目后续建议按“先工程可用，再算法增强，再真实迁移”的顺序推进。
@@ -585,12 +630,14 @@ ros2 run rail_inspection_rl rl_policy_eval --episodes 3 --max-steps 360
 - 增加深度相机或 LiDAR，用于避障和近距离复查。
 - 增加 GPS/RTK 误差、风扰动和定位漂移模型。
 - 建立可批量生成缺陷位置和类别的场景参数化脚本。
+- 将 `data/missions/*.json` 扩展为多线路任务库，并和 Gazebo 场景生成、合成缺陷位置、报告里程标统一起来。
 
 ### 阶段 4：巡检策略和路径规划
 
 目标是从固定规则状态机升级为可比较、可评估的巡检策略：
 
 - 将当前规则巡检策略抽象成 policy interface。
+- 基于任务剖面配置实现多航线、多速度、多复查策略对比。
 - 增加故障靠近复查、目标重定位、距离保持和绕障逻辑。
 - 加入巡检效率指标：覆盖率、误检复查耗时、单位里程耗电、告警定位误差。
 - 实现多策略对比：规则策略、启发式策略、RL policy。
