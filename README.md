@@ -445,6 +445,28 @@ fence_intrusion_damage
 catenary_or_pole_abnormal
 ```
 
+仓库预留了标准 YOLO 数据集结构：
+
+```text
+data/datasets/rail_defects_yolo/data.yaml
+data/datasets/rail_defects_yolo/images/{train,val,test}
+data/datasets/rail_defects_yolo/labels/{train,val,test}
+```
+
+校验类别顺序、目录结构和 YOLO 标签格式：
+
+```powershell
+python .\scripts\dataset_check.py
+```
+
+如果要求真实训练数据必须已经放好：
+
+```powershell
+python .\scripts\dataset_check.py -RequireData
+```
+
+训练数据不提交到 Git，`data.yaml` 的类别顺序必须和 `fault_catalog.py` 保持一致。
+
 ## Web Dashboard
 
 默认地址：

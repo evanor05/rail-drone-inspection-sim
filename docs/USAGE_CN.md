@@ -314,6 +314,36 @@ E:\DroneRailInspection\data\models\rail_defects.pt
 
 注意：Git 仓库默认不会上传 `.pt`、`.onnx`、`.engine` 模型文件。
 
+### YOLO 数据集结构
+
+仓库预留了真实铁路缺陷 YOLO 数据集目录：
+
+```text
+E:\DroneRailInspection\data\datasets\rail_defects_yolo
+  data.yaml
+  images\train
+  images\val
+  images\test
+  labels\train
+  labels\val
+  labels\test
+```
+
+校验类别顺序、目录结构和 YOLO 标签格式：
+
+```powershell
+cd E:\DroneRailInspection
+python .\scripts\dataset_check.py
+```
+
+如果要求真实训练数据必须已经放好：
+
+```powershell
+python .\scripts\dataset_check.py --require-data
+```
+
+`data.yaml` 的十类顺序必须和 `rail_inspection_perception/fault_catalog.py` 保持一致。图片和标签文件属于训练数据，默认不会提交到 Git。
+
 ## 9. 报告和证据
 
 报告目录：

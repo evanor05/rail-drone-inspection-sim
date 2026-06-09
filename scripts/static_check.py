@@ -57,6 +57,14 @@ def required_files() -> int:
         "docs/DEMO_SCRIPT_CN.md",
         "docs/ARCHITECTURE.md",
         "docs/REQUIREMENTS_TRACE.md",
+        "data/datasets/rail_defects_yolo/data.yaml",
+        "data/datasets/rail_defects_yolo/README.md",
+        "data/datasets/rail_defects_yolo/images/train/.gitkeep",
+        "data/datasets/rail_defects_yolo/images/val/.gitkeep",
+        "data/datasets/rail_defects_yolo/images/test/.gitkeep",
+        "data/datasets/rail_defects_yolo/labels/train/.gitkeep",
+        "data/datasets/rail_defects_yolo/labels/val/.gitkeep",
+        "data/datasets/rail_defects_yolo/labels/test/.gitkeep",
         "ros2_ws/src/rail_inspection_rl/rail_inspection_rl/evaluate.py",
         "ros2_ws/src/rail_inspection_gazebo/worlds/high_speed_rail_corridor.sdf",
         "ros2_ws/src/rail_inspection_bringup/launch/offline_demo.launch.py",
@@ -74,6 +82,7 @@ def required_files() -> int:
         "scripts/export_evidence.ps1",
         "scripts/verify_local.ps1",
         "scripts/rl_smoke.py",
+        "scripts/dataset_check.py",
         "data/exports/.gitkeep",
     ]
     missing = [file for file in files if not (ROOT / file).exists()]
@@ -139,7 +148,7 @@ def scan_dashboard_localization() -> int:
 def scan_docs() -> int:
     checks = [
         ("README.md", ["快速入口", "docs/USAGE_CN.md", "docs/DEMO_SCRIPT_CN.md", "CONTRIBUTING.md", "demo_menu.ps1"]),
-        ("docs/USAGE_CN.md", ["离线工程演示", "完整 PX4 + Gazebo 仿真", "常用辅助脚本", "YOLO", "报告和证据", "导出演示/验收证据包", "本地综合验证日志", "rl_smoke.py"]),
+        ("docs/USAGE_CN.md", ["离线工程演示", "完整 PX4 + Gazebo 仿真", "常用辅助脚本", "YOLO", "报告和证据", "导出演示/验收证据包", "本地综合验证日志", "rl_smoke.py", "dataset_check.py"]),
         ("docs/DEMO_SCRIPT_CN.md", ["演示脚本与仿真操作矩阵", "仿真模式矩阵", "交互式菜单演示"]),
         ("docs/ARCHITECTURE.md", ["架构说明", "Topic 合约", "真实无人机迁移边界", "RL 扩展点", "rl_policy_eval"]),
         ("docs/REQUIREMENTS_TRACE.md", ["需求追踪与验收矩阵", "第一阶段工程演示目标", "真实无人机迁移方向", "当前剩余风险", "RL 接口 smoke"]),
@@ -175,6 +184,10 @@ def scan_gitignore() -> int:
     terms = [
         "data/models/*.pt",
         "data/models/*.onnx",
+        "data/datasets/**/images/*",
+        "!data/datasets/**/images/.gitkeep",
+        "data/datasets/**/labels/*",
+        "!data/datasets/**/labels/.gitkeep",
         "data/reports/*",
         "!data/reports/.gitkeep",
         "data/evidence/*",
@@ -214,7 +227,7 @@ def scan_powershell_scripts() -> int:
     code = require_terms("scripts/export_evidence.ps1", ["inspection-evidence", "evidence_manifest.csv", "dashboard_status.json", "git_last_commit.txt"], "Evidence export")
     if code:
         return code
-    code = require_terms("scripts/verify_local.ps1", ["local-verify", "Static project validation", "RL policy smoke", "Evidence export smoke", "summary.json"], "Local verification")
+    code = require_terms("scripts/verify_local.ps1", ["local-verify", "Static project validation", "YOLO dataset structure check", "RL policy smoke", "Evidence export smoke", "summary.json"], "Local verification")
     if code:
         return code
     code = require_terms("scripts/report_smoke.py", ["--output-root", "output_root", "inspection_report_smoke.html"], "Report smoke")
@@ -223,7 +236,13 @@ def scan_powershell_scripts() -> int:
     code = require_terms("scripts/rl_smoke.py", ["--require-runtime", "rl_policy_eval_smoke.json", "gymnasium"], "RL smoke")
     if code:
         return code
+    code = require_terms("scripts/dataset_check.py", ["--require-data", "fault_catalog.py", "YOLO dataset check complete"], "Dataset check")
+    if code:
+        return code
     code = require_terms("ros2_ws/src/rail_inspection_rl/rail_inspection_rl/evaluate.py", ["success_rate", "RulePolicyAdapter", "mean_total_reward"], "RL evaluation")
+    if code:
+        return code
+    code = require_terms("data/datasets/rail_defects_yolo/data.yaml", ["person_on_track", "fastener_broken", "catenary_or_pole_abnormal"], "YOLO data.yaml")
     if code:
         return code
     print("[PASS] PowerShell helper scripts")

@@ -13,6 +13,10 @@ log/
 data/models/*.pt
 data/models/*.onnx
 data/models/*.engine
+data/datasets/**/images/*
+!data/datasets/**/images/.gitkeep
+data/datasets/**/labels/*
+!data/datasets/**/labels/.gitkeep
 data/reports/*
 !data/reports/.gitkeep
 data/evidence/*

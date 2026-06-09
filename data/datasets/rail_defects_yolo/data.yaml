@@ -1,0 +1,15 @@
+path: data/datasets/rail_defects_yolo
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: person_on_track
+  1: foreign_object
+  2: rock_or_debris
+  3: fallen_branch
+  4: fastener_missing
+  5: fastener_broken
+  6: rail_surface_defect
+  7: sleeper_or_slab_damage
+  8: fence_intrusion_damage
+  9: catenary_or_pole_abnormal
