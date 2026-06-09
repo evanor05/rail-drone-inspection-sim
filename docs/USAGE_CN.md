@@ -476,6 +476,7 @@ ultralytics is unavailable; using synthetic fallback detector.
 4. 每次提交前运行：
 
 ```powershell
+.\scripts\verify_local.ps1
 python .\scripts\static_check.py
 docker compose config --quiet
 ```
@@ -507,6 +508,24 @@ cd E:\DroneRailInspection
 
 ```powershell
 .\scripts\preflight.ps1 -SkipDockerCompose
+```
+
+生成本地综合验证日志：
+
+```powershell
+.\scripts\verify_local.ps1
+```
+
+它会运行静态检查、中文报告 smoke、PowerShell 脚本解析和证据导出 smoke，并把日志写到：
+
+```text
+E:\DroneRailInspection\data\exports\local-verify-<timestamp>
+```
+
+如果还要检查 `docker compose config --quiet`：
+
+```powershell
+.\scripts\verify_local.ps1 -WithDockerCompose
 ```
 
 查看当前状态：
@@ -556,5 +575,7 @@ cd E:\DroneRailInspection
 - 打开 Dashboard。
 - 运行离线验收。
 - 运行完整仿真验收。
+- 运行本地综合验证。
+- 导出演示/验收证据包。
 - 停止仿真容器。
 - 打开容器 shell。

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import importlib.util
 import json
 from datetime import datetime, timezone
@@ -17,11 +18,24 @@ def load_report_module():
     return module
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Generate a standalone Chinese report smoke artifact.")
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=ROOT / "data",
+        help="Output root containing reports/ and evidence/ directories. Defaults to project data/.",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
     module = load_report_module()
-    out_dir = ROOT / "data" / "reports"
+    output_root = args.output_root.resolve()
+    out_dir = output_root / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
-    evidence_dir = ROOT / "data" / "evidence"
+    evidence_dir = output_root / "evidence"
     evidence_dir.mkdir(parents=True, exist_ok=True)
     evidence_path = evidence_dir / "report_smoke_person_on_track.txt"
     evidence_path.write_text("synthetic report smoke evidence", encoding="utf-8")

@@ -31,6 +31,9 @@ http://127.0.0.1:8080
 # 提交前/演示前预检
 .\\scripts\\preflight.ps1
 
+# 生成本地综合验证日志
+.\scripts\verify_local.ps1
+
 # 查看容器、Dashboard、报告和证据状态
 .\scripts\status.ps1
 
@@ -321,11 +324,24 @@ cd E:\DroneRailInspection
 如果 Docker 暂时不可用，可以用本地 smoke test 验证报告和证据链路：
 
 ```powershell
+.\scripts\verify_local.ps1
 python .\scripts\local_smoke.py
 python .\scripts\check_acceptance_artifacts.py --report .\data\reports\inspection_report.json --min-alerts 1
 ```
 
 这不能替代 ROS/PX4/Gazebo 验收，只用于验证业务报告格式和报告链路。
+
+`verify_local.ps1` 会生成：
+
+```text
+data/exports/local-verify-<timestamp>
+```
+
+其中包含静态检查、中文报告 smoke、PowerShell 脚本解析和证据包导出 smoke 的日志。需要同时检查 Docker Compose 文件时可运行：
+
+```powershell
+.\scripts\verify_local.ps1 -WithDockerCompose
+```
 
 ## 完整 PX4 + Gazebo 仿真
 

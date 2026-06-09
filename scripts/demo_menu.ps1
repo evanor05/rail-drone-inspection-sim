@@ -15,9 +15,10 @@ function Show-Menu {
     Write-Host "4. 打开 Dashboard"
     Write-Host "5. 运行离线验收"
     Write-Host "6. 运行完整仿真验收"
-    Write-Host "7. 导出演示/验收证据包"
-    Write-Host "8. 停止仿真容器"
-    Write-Host "9. 打开容器 shell"
+    Write-Host "7. 运行本地综合验证"
+    Write-Host "8. 导出演示/验收证据包"
+    Write-Host "9. 停止仿真容器"
+    Write-Host "10. 打开容器 shell"
     Write-Host "0. 退出"
 }
 
@@ -31,9 +32,10 @@ while ($true) {
         "4" { & .\scripts\open_dashboard.ps1 -DashboardPort $DashboardPort }
         "5" { & .\scripts\acceptance_offline.ps1 -Seconds 35 }
         "6" { & .\scripts\acceptance_full_sim.ps1 -DashboardPort $DashboardPort -MinAlerts 1 }
-        "7" { & .\scripts\export_evidence.ps1 -DashboardPort $DashboardPort }
-        "8" { & .\scripts\stop_sim.ps1 }
-        "9" { & .\scripts\shell.ps1 }
+        "7" { & .\scripts\verify_local.ps1 -DashboardPort $DashboardPort }
+        "8" { & .\scripts\export_evidence.ps1 -DashboardPort $DashboardPort }
+        "9" { & .\scripts\stop_sim.ps1 }
+        "10" { & .\scripts\shell.ps1 }
         "0" { break }
         default { Write-Host "未知选项: $choice" }
     }
