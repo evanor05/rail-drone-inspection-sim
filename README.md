@@ -430,6 +430,18 @@ Gazebo 世界包含：
 .\scripts\download_yolo_weights.ps1
 ```
 
+检查当前模型资产和实际推理模式：
+
+```powershell
+python .\scripts\model_check.py
+```
+
+如果要在验收时强制要求真实铁路模型：
+
+```powershell
+python .\scripts\model_check.py --require-rail-model
+```
+
 如果要接近真实生产效果，应使用铁路巡检数据训练或微调 `rail_defects.pt`。类别名应保持为：
 
 ```text

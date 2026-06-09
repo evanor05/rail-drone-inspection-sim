@@ -300,6 +300,18 @@ cd E:\DroneRailInspection
 .\scripts\download_yolo_weights.ps1
 ```
 
+检查当前模型资产和实际推理模式：
+
+```powershell
+python .\scripts\model_check.py
+```
+
+如果验收时必须使用真实铁路缺陷模型：
+
+```powershell
+python .\scripts\model_check.py --require-rail-model
+```
+
 如果要启用真实 YOLO 推理：
 
 ```powershell
